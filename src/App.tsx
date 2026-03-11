@@ -285,6 +285,57 @@ function SettingsPanel({config,onClose,onSave}:{config:any,onClose:()=>void,onSa
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────────
+// ── AI Exec Summary ──────────────────────────────────────────────────────────
+function ExecSummary({ activeMarket, summaries, fetched_at }:{
+  activeMarket:string; summaries:Record<string,string>; fetched_at:string;
+}){
+  const flagMap:Record<string,string> = {UAE:"🇦🇪",KSA:"🇸🇦",Kuwait:"🇰🇼",Qatar:"🇶🇦"};
+  const date = new Date(fetched_at).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+  const text = summaries?.[activeMarket];
+
+  return (
+    <div style={{
+      background:"linear-gradient(135deg,rgba(0,0,80,0.9) 0%,rgba(0,30,60,0.95) 100%)",
+      border:"1px solid rgba(176,244,103,0.25)",
+      borderLeft:"3px solid #B0F467",
+      borderRadius:8,
+      padding:"20px 24px",
+      marginBottom:28,
+      position:"relative",
+      overflow:"hidden",
+    }}>
+      <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,
+        background:"radial-gradient(circle,rgba(176,244,103,0.06) 0%,transparent 70%)",
+        pointerEvents:"none"}}/>
+
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{
+            background:"rgba(176,244,103,0.15)",border:"1px solid rgba(176,244,103,0.3)",
+            borderRadius:4,padding:"3px 9px",fontSize:10,fontWeight:700,
+            color:"#B0F467",letterSpacing:1.5,textTransform:"uppercase" as const
+          }}>AI Intel</div>
+          <span style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.5)"}}>
+            {flagMap[activeMarket]} {activeMarket} · {date}
+          </span>
+        </div>
+      </div>
+
+      <div style={{fontSize:13,lineHeight:1.8,color:"rgba(255,255,255,0.85)",fontWeight:400,maxWidth:900}}>
+        {text
+          ? text.split("\n").filter(Boolean).map((para,i)=>(
+              <p key={i} style={{margin:i===0?"0 0 10px 0":"10px 0"}}
+                dangerouslySetInnerHTML={{__html:para.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")}}/>
+            ))
+          : <span style={{color:"rgba(255,255,255,0.25)",fontStyle:"italic",fontSize:12}}>
+              AI summary will appear after the next daily data refresh (runs 09:00 GST).
+            </span>
+        }
+      </div>
+    </div>
+  );
+}
+
 
 export default function App(){
   const [data,         setData]         = useState<any>(null);
@@ -431,7 +482,7 @@ export default function App(){
       const sigs = Object.keys(categories[ck]?.signals||{});
       // Base value from history (wiki, global — same across markets)
       const baseVals: number[] = sigs
-        .map(s => rec.markets?.["UAE"]?.[s])
+        .map(s => rec.markets?.[m]?.[s])
         .filter((v:any) => v != null && !isNaN(Number(v))) as number[];
       const base = baseVals.length
         ? baseVals.reduce((a:number,b:number)=>a+b,0) / baseVals.length
@@ -780,6 +831,12 @@ export default function App(){
 
       <main className="main">
 
+        {/* ── AI Exec Summary ── */}
+        <ExecSummary
+          activeMarket={activeMarket}
+          summaries={data.summaries||{}}
+          fetched_at={data.fetched_at||new Date().toISOString()}
+        />
 
         {/* ── Category overview ── */}
         <div>
@@ -846,7 +903,7 @@ export default function App(){
                     date: rec.date?.slice(5),
                     ...Object.fromEntries(allMkts.map(m=>{
                       const vals = activeSigKeys
-                        .map((s:string)=>rec.markets?.["UAE"]?.[s])
+                        .map((s:string)=>rec.markets?.[m]?.[s])
                         .filter((v:any)=>v!=null) as number[];
                       const base = vals.length ? vals.reduce((a:number,b:number)=>a+b,0)/vals.length : null;
                       if(base===null) return [m, null];
