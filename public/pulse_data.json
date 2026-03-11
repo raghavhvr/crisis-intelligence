@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-03-11T10:37:29.118278+00:00",
+  "fetched_at": "2026-03-11T10:42:42.886320+00:00",
   "dates": [
     "Mar 04",
     "Mar 05",
@@ -1754,10 +1754,11 @@
         ]
       },
       "Kuwait": {
-        "sport_entertainment_pct": 30,
+        "sport_entertainment_pct": 20,
         "crisis_pct": 10,
         "top_topics": [
           "abdul samad",
+          "\u0627\u0644\u062c\u0632\u064a\u0631\u0629 \u0644\u0644\u0637\u064a\u0631\u0627\u0646",
           "maaz sadaqat",
           "pakistan vs bangladesh",
           "jazeera airways",
@@ -1765,14 +1766,14 @@
           "\u0627\u0644\u0637\u0642\u0633",
           "mirassol vs santos",
           "\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0628\u0637\u0627\u0644",
-          "\u0627\u0628\u0633\u062a\u064a\u0646",
-          "atalanta vs bayern"
+          "\u0627\u0628\u0633\u062a\u064a\u0646"
         ]
       },
       "Qatar": {
         "sport_entertainment_pct": 40,
         "crisis_pct": 10,
         "top_topics": [
+          "nahid rana",
           "abdul samad",
           "icc",
           "maaz sadaqat",
@@ -1781,33 +1782,32 @@
           "alexandra eala",
           "mirassol vs santos",
           "new zealand women vs zimbabwe women",
-          "barcelona vs newcastle",
-          "barca"
+          "barcelona vs newcastle"
         ]
       }
     },
     "twitch": {
-      "total_viewers": 203843,
+      "total_viewers": 210960,
       "top_games": [
         {
           "name": "Dota 2",
-          "viewers": 63311
+          "viewers": 65172
         },
         {
           "name": "Street Fighter 6",
-          "viewers": 49445
+          "viewers": 50701
         },
         {
           "name": "League of Legends",
-          "viewers": 28243
+          "viewers": 39856
         },
         {
           "name": "Just Chatting",
-          "viewers": 22471
+          "viewers": 17292
         },
         {
           "name": "Super Mario 64",
-          "viewers": 12848
+          "viewers": 13434
         }
       ]
     }
@@ -1995,10 +1995,10 @@
       "war_news": 476,
       "flight_searches": 47,
       "fact_checking": 19,
-      "social_news": 240,
+      "social_news": 241,
       "price_comparison": 96,
       "discounts": 35,
-      "budgeting": 24,
+      "budgeting": 25,
       "inflation": 92,
       "panic_buying": 64,
       "panic_selling": 86,
@@ -2028,5 +2028,9 @@
     "twitch"
   ],
   "sources_failed": [],
-  "ramadan_active": true
+  "ramadan_active": true,
+  "summaries": {
+    "Kuwait": "WPP Media MENA strategist. 11 March 2026. Market: Kuwait. Ramadaan is active\n\nSignals: Escapism & Entertainment: humor(53), beauty(45), streaming(24); News & Crisis Awareness: breaking news(491), war news(476), crisis topics(282); Economic Anxiety: price comparison(96), inflation(92), panic sellers(86); Behavioral Shifts: travel(135), home improvement(101), food delivery(52); Wellness & Menatal Health: sleep(60), mental health(57), therapy(37); Social & Community: community(170), charity(44), volunteering(3); Ramadaan: late nights(19), iftars delivered(18), suhoors(15)\nRSs: sport 20%, criis 10%, trening  abdu'l samad, al jazir ya baladi\n\nWrite 3 short paragraphs (120 words",
+    "UAE": "WPP Media MENA strategist. 11 March 2026. Market: UAE. Ramadaan is active, with the following three short paragraphs (120 words max):\n\n1. Consumer Pulse \u2014 dominant behaviour now, name top 2 signals\n    - Signals: Escapism & Entertainment: humour(53), beauty(45), streaming(24); News & Crisis Awareness: breaking news(491), war news(476), crisi\u0441 topics(282); Economic Anxiety: price comparison(96), inflation(92), panic selling(86); Behavioral Shifts: travel(135), home improvement(101), food delivery(52); Wellness & Menatal Health: sleep(60), mental health(57), therapy(37)\n    - Ramadaan: late nights, iftar delivery, suhoor (Saturday, 14th September 2021)\n    \n2. Media Implication \u2014 one sharp action for a brand this week\n    - Signals"
+  }
 }
