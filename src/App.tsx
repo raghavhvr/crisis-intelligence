@@ -286,160 +286,12 @@ function SettingsPanel({config,onClose,onSave}:{config:any,onClose:()=>void,onSa
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 // ── AI Exec Summary ──────────────────────────────────────────────────────────
-function ExecSummary({ activeMarket, categories, newsapiByMarket, guardian, rss, history, isRamadan, fetched_at }:{
-  activeMarket:string; categories:any; newsapiByMarket:any; guardian:any;
-  rss:any; history:any[]; isRamadan:boolean; fetched_at:string;
+function ExecSummary({ activeMarket, summaries, fetched_at }:{
+  activeMarket:string; summaries:Record<string,string>; fetched_at:string;
 }){
-  // Cache summaries per market for the session (keyed by market + fetched_at date)
-  const cacheRef  = useRef<Record<string,string>>({});
-  const loadingRef = useRef<Record<string,boolean>>({});
-  const [activeKey, setActiveKey] = useState("");
-  const [tick, setTick]           = useState(0); // force re-render when cache updates
-  const abortRef = useRef<AbortController|null>(null);
-
-  const cacheKey = `${activeMarket}::${fetched_at?.slice(0,10)||""}`;
-  const summary  = cacheRef.current[cacheKey] || "";
-  const loading  = !!loadingRef.current[cacheKey];
-  const [error, setError] = useState("");
-
-  useEffect(()=>{
-    if(!activeMarket || !categories) return;
-    setActiveKey(cacheKey);
-
-    // Already cached or in-flight — just show it
-    if(cacheRef.current[cacheKey] || loadingRef.current[cacheKey]) return;
-
-    // Mark as loading and kick off request
-    loadingRef.current[cacheKey] = true;
-    setError("");
-    setTick(t=>t+1);
-
-    if(abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
-
-    // Build signal snapshot for prompt
-    const catKeys = Object.keys(categories);
-    const mktNews = newsapiByMarket[activeMarket]||{};
-    const r = rss[activeMarket]||{};
-    const catSummaries = catKeys.map(ck=>{
-      const cat = categories[ck];
-      const sigs = Object.keys(cat.signals||{});
-      const topSigs = sigs
-        .map(s=>({ s, vol:(mktNews[s]||0)+(guardian[s]||0) }))
-        .sort((a,b)=>b.vol-a.vol)
-        .slice(0,3)
-        .map(x=>`${x.s.replace(/_/g," ")}(${x.vol})`)
-        .join(", ");
-      return `${cat.label}: ${topSigs||"low signal"}`;
-    }).join("\n");
-
-    // 7-day trend: compare last 7 days vs prior 7
-    const rec7 = history.slice(-7);
-    const rec14 = history.slice(-14,-7);
-    const trendStr = catKeys.map(ck=>{
-      const sigs = Object.keys(categories[ck]?.signals||{});
-      const avg = (recs:any[]) => {
-        const vals = recs.flatMap((rec:any)=>sigs.map(s=>rec.markets?.[activeMarket]?.[s]).filter((v:any)=>v!=null));
-        return vals.length ? Math.round(vals.reduce((a:number,b:number)=>a+b,0)/vals.length) : 0;
-      };
-      const now = avg(rec7), prev = avg(rec14);
-      const delta = now-prev;
-      return `${categories[ck].label}: ${now} (${delta>=0?"+":""}${delta} vs prior week)`;
-    }).join(", ");
-
-    const today = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
-    const ramadanNote = isRamadan ? " Note: Ramadan is currently active — consumption patterns are shifted." : "";
-
-    const prompt = `WPP Media MENA strategist. ${today}. Market: ${activeMarket}.${ramadanNote}
-
-Signals: ${catSummaries}
-RSS: sport ${r.sport_entertainment_pct||0}%, crisis ${r.crisis_pct||0}%, trending: ${(r.top_topics||[]).slice(0,4).join(", ")||"n/a"}
-Trends: ${trendStr}
-
-Write 3 short paragraphs (120 words total max):
-1. Consumer Pulse — dominant behaviour right now, name top 2 signals
-2. What's Driving It — real-world correlation for ${activeMarket}, ${today}
-3. Media Implication — one sharp action for a brand this week
-No headers. Flowing prose. If any category moved >15pts week-on-week add a bold Signal Alert sentence at end.`;
-
-    // Cascading free providers — tries each in order, no API key needed
-    const PROVIDERS = [
-      // LLM7: GPT-4o-mini, fast, OpenAI-compatible, no key
-      {
-        url: "https://api.llm7.io/v1/chat/completions",
-        body: (p:string) => JSON.stringify({ model:"gpt-4o-mini-2024-07-18", max_tokens:400, temperature:0.7, stream:true, messages:[{role:"user",content:p}] }),
-        headers: {"Content-Type":"application/json","Authorization":"Bearer unused"},
-        parse: (raw:string) => { try{ return JSON.parse(raw).choices?.[0]?.delta?.content||""; }catch{ return ""; } },
-        streamFormat: "sse" as const,
-      },
-      // mlvoca: Ollama-based fallback, slower
-      {
-        url: "https://mlvoca.com/api/generate",
-        body: (p:string) => JSON.stringify({ model:"deepseek-r1:1.5b", prompt:p, stream:true }),
-        headers: {"Content-Type":"application/json"},
-        parse: (raw:string) => { try{ return JSON.parse(raw).response||""; }catch{ return ""; } },
-        streamFormat: "ndjson" as const,
-      },
-    ];
-
-    const signal = abortRef.current.signal;
-
-    async function streamFromProvider(provider: typeof PROVIDERS[0]): Promise<boolean> {
-      const res = await fetch(provider.url, { method:"POST", headers:provider.headers, body:provider.body(prompt), signal });
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const reader = res.body!.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      while(true){
-        const {done,value} = await reader.read();
-        if(done) break;
-        buf += dec.decode(value,{stream:true});
-        const lines = buf.split("\n");
-        buf = lines.pop()||"";
-        for(const line of lines){
-          const trimmed = line.trim();
-          if(!trimmed) continue;
-          let raw = trimmed;
-          if(provider.streamFormat==="sse"){
-            if(!trimmed.startsWith("data: ")) continue;
-            raw = trimmed.slice(6).trim();
-            if(raw==="[DONE]") continue;
-          }
-          // deepseek-r1 wraps output in <think>…</think> — strip it
-          const delta = provider.parse(raw).replace(/<think>[\s\S]*?<\/think>/g,"").replace(/<think>[\s\S]*/,"");
-          if(delta){
-            cacheRef.current[cacheKey] = (cacheRef.current[cacheKey]||"") + delta;
-            setTick(t=>t+1);
-          }
-        }
-      }
-      return true;
-    }
-
-    (async ()=>{
-      for(const provider of PROVIDERS){
-        try{
-          await streamFromProvider(provider);
-          loadingRef.current[cacheKey] = false;
-          setTick(t=>t+1);
-          return;
-        } catch(e:any){
-          if(e.name==="AbortError") return;
-          // 429 or error — try next provider
-          // retry next provider
-          continue;
-        }
-      }
-      setError("All free AI providers are busy. Refresh to retry.");
-      loadingRef.current[cacheKey] = false;
-      setTick(t=>t+1);
-    })();
-
-    return ()=>{ abortRef.current?.abort(); };
-  }, [activeMarket, tick]);
-
   const flagMap:Record<string,string> = {UAE:"🇦🇪",KSA:"🇸🇦",Kuwait:"🇰🇼",Qatar:"🇶🇦"};
   const date = new Date(fetched_at).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+  const text = summaries?.[activeMarket];
 
   return (
     <div style={{
@@ -452,81 +304,34 @@ No headers. Flowing prose. If any category moved >15pts week-on-week add a bold 
       position:"relative",
       overflow:"hidden",
     }}>
-      {/* background glow */}
       <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,
         background:"radial-gradient(circle,rgba(176,244,103,0.06) 0%,transparent 70%)",
         pointerEvents:"none"}}/>
 
-      {/* header row */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{
             background:"rgba(176,244,103,0.15)",border:"1px solid rgba(176,244,103,0.3)",
             borderRadius:4,padding:"3px 9px",fontSize:10,fontWeight:700,
-            color:"#B0F467",letterSpacing:1.5,textTransform:"uppercase"
+            color:"#B0F467",letterSpacing:1.5,textTransform:"uppercase" as const
           }}>AI Intel</div>
           <span style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.5)"}}>
             {flagMap[activeMarket]} {activeMarket} · {date}
           </span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          {loading && (
-            <div style={{display:"flex",gap:3,alignItems:"center"}}>
-              {[0,1,2].map(i=>(
-                <div key={i} style={{
-                  width:4,height:4,borderRadius:"50%",background:"#B0F467",
-                  animation:"pulse-dot 1.2s ease-in-out infinite",
-                  animationDelay:`${i*0.2}s`,opacity:0.7
-                }}/>
-              ))}
-              <span style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginLeft:4}}>Generating…</span>
-            </div>
-          )}
-          {!loading && (
-            <button onClick={()=>{
-              delete cacheRef.current[cacheKey];
-              loadingRef.current[cacheKey] = false;
-              setTick(t=>t+1);
-            }} style={{
-              background:"none",border:"none",color:"rgba(255,255,255,0.25)",
-              fontSize:11,cursor:"pointer",padding:"2px 6px",borderRadius:3,
-              transition:"color .15s",
-            }}
-            onMouseEnter={e=>(e.currentTarget.style.color="rgba(176,244,103,0.7)")}
-            onMouseLeave={e=>(e.currentTarget.style.color="rgba(255,255,255,0.25)")}
-            title="Regenerate summary">↻</button>
-          )}
-        </div>
       </div>
 
-      {/* body */}
-      {error ? (
-        <div style={{fontSize:12,color:"rgba(255,120,100,0.8)"}}>{error}</div>
-      ) : (
-        <div style={{
-          fontSize:13,lineHeight:1.75,color:"rgba(255,255,255,0.85)",
-          fontWeight:400,maxWidth:900,
-          whiteSpace:"pre-wrap",
-        }}>
-          {summary || (loading ? "" : <span style={{color:"rgba(255,255,255,0.25)",fontStyle:"italic"}}>Loading market intelligence…</span>)}
-          {loading && summary && <span style={{
-            display:"inline-block",width:2,height:14,
-            background:"#B0F467",marginLeft:2,
-            animation:"blink-cursor 0.8s step-end infinite",
-            verticalAlign:"middle"
-          }}/>}
-        </div>
-      )}
-
-      <style>{`
-        @keyframes pulse-dot {
-          0%,80%,100%{transform:scale(0.7);opacity:0.4}
-          40%{transform:scale(1.1);opacity:1}
+      <div style={{fontSize:13,lineHeight:1.8,color:"rgba(255,255,255,0.85)",fontWeight:400,maxWidth:900}}>
+        {text
+          ? text.split("\n").filter(Boolean).map((para,i)=>(
+              <p key={i} style={{margin:i===0?"0 0 10px 0":"10px 0"}}
+                dangerouslySetInnerHTML={{__html:para.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")}}/>
+            ))
+          : <span style={{color:"rgba(255,255,255,0.25)",fontStyle:"italic",fontSize:12}}>
+              AI summary will appear after the next daily data refresh (runs 09:00 GST).
+            </span>
         }
-        @keyframes blink-cursor {
-          0%,100%{opacity:1} 50%{opacity:0}
-        }
-      `}</style>
+      </div>
     </div>
   );
 }
@@ -1029,12 +834,7 @@ export default function App(){
         {/* ── AI Exec Summary ── */}
         <ExecSummary
           activeMarket={activeMarket}
-          categories={categories}
-          newsapiByMarket={newsapiByMarket}
-          guardian={guardian}
-          rss={rss}
-          history={history}
-          isRamadan={!!isRamadan}
+          summaries={data.summaries||{}}
           fetched_at={data.fetched_at||new Date().toISOString()}
         />
 
