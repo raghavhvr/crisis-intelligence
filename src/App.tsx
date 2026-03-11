@@ -449,34 +449,33 @@ export default function App(){
     return row;
   });
 
-  // Radar data — per-market scores using newsapi geo-filtered volumes
-  // Each market's newsapi volumes are genuinely different (geo-filtered queries)
-  const RADAR_MARKETS = ["UAE","KSA","Kuwait","Qatar"];
-  // Pre-compute max per-signal across all markets for normalisation
-  const sigMaxMap: Record<string,number> = {};
-  Object.keys(flatSigs).forEach(s=>{
-    sigMaxMap[s] = Math.max(
-      ...RADAR_MARKETS.map(m=>(newsapiByMarket[m]?.[s]||0)+(guardian[s]||0)),
-      1
-    );
-  });
+  // Radar data — per-market scores blending wiki 7-day avg with RSS mood weight.
+  // Normalised within the active market so switching tabs gives genuinely different shapes.
   const radarData = catKeys.map(ck=>{
-    const cat = categories[ck];
+    const cat  = categories[ck];
     const sigs = Object.keys(cat.signals||{});
-    // Per-market score: newsapi geo-filtered volume normalised against all markets
-    const mktNewsVals = sigs.map(s=>{
-      const vol = (newsapiByMarket[activeMarket]?.[s]||0) + (guardian[s]||0);
-      return Math.round((vol / sigMaxMap[s]) * 99);
-    });
-    const newsAvg = mktNewsVals.length ? Math.round(mktNewsVals.reduce((a,b)=>a+b,0)/mktNewsVals.length) : 0;
-    // Wiki as fallback shape if newsapi not available
+    // Wiki 7-day average for active market
     const wikiVals = sigs.map(s=>{
       const v = markets[activeMarket]?.[s];
-      return Array.isArray(v) ? v[v.length-1] : (v??0);
-    }).filter((v:any)=>v!=null) as number[];
-    const wikiAvg = wikiVals.length ? Math.round(wikiVals.reduce((a,b)=>a+b,0)/wikiVals.length) : 0;
+      return Array.isArray(v) ? v.reduce((a:number,b:number)=>a+b,0)/v.length : (typeof v==="number" ? v : 0);
+    });
+    const wikiAvg = wikiVals.length ? wikiVals.reduce((a:number,b:number)=>a+b,0)/wikiVals.length : 0;
+    // Apply RSS mood weight so Sport/Crisis skew per-market
+    const r = rss[activeMarket]||{};
+    const catType = ck==="escapism"||ck==="entertainment" ? "sport"
+      : ck==="crisis_awareness"||ck==="news" ? "crisis" : "econ";
+    const sportW  = (r.sport_entertainment_pct||50)/50;
+    const crisisW = (r.crisis_pct||50)/50;
+    const moodW   = catType==="sport" ? sportW : catType==="crisis" ? crisisW : (sportW+crisisW)/2;
+    // Small newsapi boost if geo-filtered data exists for this market
     const hasNewsData = sigs.some(s=>(newsapiByMarket[activeMarket]?.[s]||0)>0);
-    return {category:cat.label.split("&")[0].trim(), value:hasNewsData ? newsAvg : wikiAvg, fullMark:100};
+    const newsVol = sigs.reduce((sum,s)=>sum+(newsapiByMarket[activeMarket]?.[s]||0)+(guardian[s]||0),0);
+    const newsBoost = hasNewsData ? Math.min(20, Math.round(newsVol/50)) : 0;
+    return {
+      category: cat.label.split("&")[0].trim(),
+      value:    Math.min(99, Math.max(1, Math.round(wikiAvg * moodW + newsBoost))),
+      fullMark: 100
+    };
   });
 
   const fetchedAt  = new Date(data.fetched_at);
@@ -955,7 +954,7 @@ export default function App(){
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={historyChart}>
-                    <XAxis dataKey="date" tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} interval="preserveStartEnd"/>
+                    <XAxis dataKey="date" tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(historyChart.length/5)-1)}/>
                     <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} width={26}/>
                     <Tooltip content={<CustomTooltip/>}/>
                     {catKeys.map(ck=>(
