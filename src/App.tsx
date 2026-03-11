@@ -431,7 +431,7 @@ export default function App(){
       const sigs = Object.keys(categories[ck]?.signals||{});
       // Base value from history (wiki, global — same across markets)
       const baseVals: number[] = sigs
-        .map(s => rec.markets?.["UAE"]?.[s])
+        .map(s => rec.markets?.[activeMarket]?.[s])
         .filter((v:any) => v != null && !isNaN(Number(v))) as number[];
       const base = baseVals.length
         ? baseVals.reduce((a:number,b:number)=>a+b,0) / baseVals.length
@@ -482,6 +482,7 @@ export default function App(){
   const fetchedAt  = new Date(data.fetched_at);
   const timeAgo    = Math.round((Date.now()-fetchedAt.getTime())/60000);
   const timeAgoStr = timeAgo<60?`${timeAgo}m ago`:`${Math.round(timeAgo/60)}h ago`;
+  const isStale    = timeAgo > 25 * 60; // older than 25 hours → collector likely failed
 
   return (
     <>
@@ -766,6 +767,14 @@ export default function App(){
       {/* Ramadan banner */}
       {isRamadan && <RamadanBanner endDate={ramadanEnd}/>}
 
+      {/* Staleness warning — shown when collector hasn't run in >25h */}
+      {isStale && (
+        <div style={{background:"rgba(252,254,103,0.12)",borderBottom:"1px solid rgba(252,254,103,0.3)",padding:"8px 24px",display:"flex",alignItems:"center",gap:10,fontFamily:"var(--sans)",fontSize:12,fontWeight:600,color:"#FCFE67"}}>
+          <span>⚠</span>
+          <span>Data may be stale — last collected {timeAgoStr}. The daily collector may have failed. Check GitHub Actions for errors.</span>
+        </div>
+      )}
+
       {/* Sticky market nav */}
       <div className="sticky-nav">
         <div className="market-bar">
@@ -846,7 +855,7 @@ export default function App(){
                     date: rec.date?.slice(5),
                     ...Object.fromEntries(allMkts.map(m=>{
                       const vals = activeSigKeys
-                        .map((s:string)=>rec.markets?.["UAE"]?.[s])
+                        .map((s:string)=>rec.markets?.[activeMarket]?.[s])
                         .filter((v:any)=>v!=null) as number[];
                       const base = vals.length ? vals.reduce((a:number,b:number)=>a+b,0)/vals.length : null;
                       if(base===null) return [m, null];
@@ -980,12 +989,12 @@ export default function App(){
         {/* ── Twitch ── */}
         {twitch.total_viewers > 0 && (
           <div>
-            <div className="sec">Live Gaming · Twitch · Right Now</div>
+            <div className="sec">Live Gaming · Twitch Top 100 Streams · Global Signal · Right Now</div>
             <div className="card">
               <div className="twitch-row">
                 <div className="twitch-stat">
                   <div className="twitch-num">{fmt(twitch.total_viewers||0)}</div>
-                  <div className="twitch-lbl">Live Viewers</div>
+                  <div className="twitch-lbl">Viewers (Top 100 Streams · Global)</div>
                 </div>
                 <div className="game-rows">
                   {(twitch.top_games||[]).map((g:any,i:number)=>{
