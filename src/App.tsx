@@ -385,7 +385,7 @@ Rules: Be direct, no fluff. Use signal names naturally. Maximum 180 words total.
 
     // Gemini 1.5 Flash — free tier (15 req/min). Get a key: https://aistudio.google.com/apikey
     const GEMINI_KEY = geminiKey;
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${GEMINI_KEY}`;
 
     fetch(geminiUrl, {
       method:"POST",
