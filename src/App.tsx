@@ -728,28 +728,44 @@ export default function App(){
               </div>
               <div className="dp-chart-panel">
                 <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--muted)",marginBottom:4}}>
-                  SIGNAL INDEX · {activeMarket}
+                  MARKET COMPARISON · {activeCatObj.label?.toUpperCase()}
                 </div>
                 <div style={{fontSize:10,color:"var(--muted)",marginBottom:14,fontStyle:"italic"}}>
-                  Wikipedia interest, normalised 0–100
+                  30-day avg signal index per market
                 </div>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={dates.map((d:string,i:number)=>{
-                    const row:any={date:d};
-                    activeSigKeys.forEach(sk=>{row[sk]=markets[activeMarket]?.[sk]?.[i]??null;});
-                    return row;
-                  })}>
-                    <XAxis dataKey="date" tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false}/>
-                    <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} width={26}/>
-                    <Tooltip content={<CustomTooltip/>}/>
-                    {activeSigKeys.map(sk=>(
-                      <Line key={sk} type="monotone" dataKey={sk} name={flatSigs[sk]?.label}
-                        stroke={activeCatObj.color} strokeWidth={1.5}
-                        strokeOpacity={0.5+(activeSigKeys.indexOf(sk)*0.5/activeSigKeys.length)}
-                        dot={false} connectNulls/>
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
+                {(()=>{
+                  // Build per-market category average from history (last 30 days)
+                  const allMkts = Object.keys(MARKET_FLAGS);
+                  const mktColors:Record<string,string> = {
+                    UAE:"#00e5c8", KSA:"#f72585", Kuwait:"#fb8500", Qatar:"#8338ec"
+                  };
+                  const histData = history.slice(-30).map((rec:any)=>({
+                    date: rec.date?.slice(5),
+                    ...Object.fromEntries(allMkts.map(m=>{
+                      const vals = activeSigKeys
+                        .map((s:string)=>rec.markets?.[m]?.[s])
+                        .filter((v:any)=>v!=null) as number[];
+                      return [m, vals.length ? Math.round(vals.reduce((a:number,b:number)=>a+b,0)/vals.length) : null];
+                    }))
+                  }));
+                  return (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={histData}>
+                        <XAxis dataKey="date" tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false}
+                          interval={Math.floor(histData.length/4)}/>
+                        <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} width={26}/>
+                        <Tooltip content={<CustomTooltip/>}/>
+                        {allMkts.map(m=>(
+                          <Line key={m} type="monotone" dataKey={m} name={m}
+                            stroke={mktColors[m]||"#4a6070"}
+                            strokeWidth={m===activeMarket ? 2.5 : 1.2}
+                            strokeOpacity={m===activeMarket ? 1 : 0.5}
+                            dot={false} connectNulls/>
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  );
+                })()}
               </div>
             </div>
           </div>
