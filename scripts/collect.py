@@ -244,6 +244,11 @@ def backfill(signals: dict, guardian_key: str, newsapi_key: str) -> list:
                 newsapi[market_name][sig_key] = per_sig_per_day
             time.sleep(0.5)
 
+    # Compute RSS-based market weights for backfill differentiation
+    # Use placeholder weights if RSS not available during backfill
+    # UAE/KSA heavier (larger markets), Kuwait/Qatar lighter
+    backfill_rss_weights = {"UAE": 1.10, "KSA": 1.05, "Kuwait": 0.90, "Qatar": 0.95}
+
     # Assemble daily records
     records = []
     for days_ago in range(BACKFILL_DAYS, 0, -1):
@@ -255,12 +260,23 @@ def backfill(signals: dict, guardian_key: str, newsapi_key: str) -> list:
 
         for market_name in MARKETS.values():
             record["markets"][market_name] = {}
+            mkt_newsapi = newsapi.get(market_name, {})
+            w = backfill_rss_weights.get(market_name, 1.0)
             for sig_key in signals:
-                record["markets"][market_name][sig_key] = wiki.get(sig_key, {}).get(day_key)
+                wiki_val = wiki.get(sig_key, {}).get(day_key)
+                if wiki_val is not None and mkt_newsapi.get(sig_key, 0) > 0:
+                    # Blend wiki with per-market newsapi volume
+                    sig_max = max((newsapi.get(m, {}).get(sig_key, 1) for m in MARKETS.values()), default=1) or 1
+                    news_norm = min(99, round((mkt_newsapi[sig_key] / sig_max) * 99))
+                    record["markets"][market_name][sig_key] = round(wiki_val * 0.45 + news_norm * 0.55, 1)
+                elif wiki_val is not None:
+                    # No newsapi: apply market weight to wiki for differentiation
+                    record["markets"][market_name][sig_key] = round(min(99, wiki_val * w), 1)
+                else:
+                    record["markets"][market_name][sig_key] = None
 
         for sig_key in signals:
             g = guardian.get(sig_key, {}).get(day_key, 0)
-            # Average across markets for history record
             n_vals = [newsapi.get(m, {}).get(sig_key, 0) for m in MARKETS.values()]
             n = round(sum(n_vals) / len(n_vals)) if n_vals else 0
             record["news_volumes"][sig_key] = g + n
@@ -290,12 +306,26 @@ def append_today(history: list, pulse: dict, signals: dict) -> list:
     }
 
     # Per-market scores: blend wiki (last value) + per-market newsapi normalised
+    # Fallback: use RSS sport/crisis weights as market differentiator when newsapi unavailable
+    rss_trends = pulse.get("global", {}).get("rss_trends", {})
+
     all_market_totals = {}
     for market_name in MARKETS.values():
         mkt_news = newsapi_raw.get(market_name, {}) if is_per_market else {}
         all_market_totals[market_name] = sum(mkt_news.get(s, 0) for s in signals)
 
     max_total = max(all_market_totals.values(), default=1) or 1
+
+    # Compute RSS-based market weight (sport+crisis intensity relative to avg)
+    rss_weights: dict[str, float] = {}
+    for market_name in MARKETS.values():
+        r = rss_trends.get(market_name, {})
+        sport  = r.get("sport_entertainment_pct", 50)
+        crisis = r.get("crisis_pct", 50)
+        rss_weights[market_name] = (sport + crisis) / 100  # 0.0–2.0, avg ~1.0
+    # Normalise so average weight = 1.0
+    avg_w = sum(rss_weights.values()) / len(rss_weights) if rss_weights else 1.0
+    rss_weights = {m: w / avg_w for m, w in rss_weights.items()}
 
     for market_name in MARKETS.values():
         wiki_vals = {}
@@ -305,8 +335,6 @@ def append_today(history: list, pulse: dict, signals: dict) -> list:
 
         mkt_news = newsapi_raw.get(market_name, {}) if is_per_market else {}
         mkt_total = all_market_totals.get(market_name, 0)
-        # Normalise this market's news volume relative to the highest-volume market
-        mkt_news_factor = mkt_total / max_total  # 0.0 – 1.0
 
         snap["markets"][market_name] = {}
         snap["news_volumes_by_market"][market_name] = {}
@@ -314,13 +342,17 @@ def append_today(history: list, pulse: dict, signals: dict) -> list:
             wiki = wiki_vals.get(sig_key)
             sig_news = mkt_news.get(sig_key, 0) + guardian.get(sig_key, 0)
             snap["news_volumes_by_market"][market_name][sig_key] = sig_news
-            if wiki is not None and is_per_market:
-                # Blend wiki trend shape with per-market news intensity
+            if wiki is not None and is_per_market and mkt_total > 0:
+                # NewsAPI available: blend wiki trend shape with per-market news intensity
                 sig_max = max((newsapi_raw.get(m, {}).get(sig_key, 0) for m in MARKETS.values()), default=1) or 1
                 news_norm = min(99, round((sig_news / sig_max) * 99))
                 snap["markets"][market_name][sig_key] = round(wiki * 0.45 + news_norm * 0.55, 1)
+            elif wiki is not None:
+                # NewsAPI unavailable: apply RSS-derived market weight to differentiate markets
+                w = rss_weights.get(market_name, 1.0)
+                snap["markets"][market_name][sig_key] = round(min(99, wiki * w), 1)
             else:
-                snap["markets"][market_name][sig_key] = wiki
+                snap["markets"][market_name][sig_key] = None
 
     # Flat global rollup for backwards compat
     for sig_key in signals:
@@ -512,100 +544,6 @@ def collect():
 
     return result, signals, config
 
-
-
-# ── AI Summaries (template-based — deterministic, no external API needed) ─────
-
-def generate_market_summary(market: str, data: dict, config: dict) -> str:
-    """Generate a data-driven 3-paragraph market brief directly from signals."""
-    from datetime import timezone as tz
-    categories    = config.get("categories", {})
-    newsapi_raw   = data.get("news_volumes", {}).get("newsapi", {})
-    guardian      = data.get("news_volumes", {}).get("guardian", {})
-    rss           = data.get("global", {}).get("rss_trends", {}).get(market, {})
-    is_per_market = isinstance(next(iter(newsapi_raw.values()), None), dict)
-    mkt_news      = newsapi_raw.get(market, {}) if is_per_market else newsapi_raw
-    is_ramadan    = bool(data.get("ramadan_active") and config.get("ramadan_active"))
-
-    # Score every active signal by news volume
-    all_signals: dict = {}
-    for ck, cat in categories.items():
-        if cat.get("ramadan_only") and not is_ramadan:
-            continue
-        for sk in cat.get("signals", {}).keys():
-            score = (mkt_news.get(sk, 0) + guardian.get(sk, 0))
-            all_signals[sk] = {"score": score, "cat": ck, "cat_label": cat["label"]}
-
-    ranked   = sorted(all_signals.items(), key=lambda x: x[1]["score"], reverse=True)
-    top2     = ranked[:2]
-
-    cat_scores: dict = {}
-    for sk, info in all_signals.items():
-        cat_scores[info["cat"]] = cat_scores.get(info["cat"], 0) + info["score"]
-    top_cat_key   = max(cat_scores, key=cat_scores.get) if cat_scores else ""
-    top_cat_label = categories.get(top_cat_key, {}).get("label", "")
-
-    sport_pct  = rss.get("sport_entertainment_pct", 0)
-    crisis_pct = rss.get("crisis_pct", 0)
-    trending   = rss.get("top_topics", [])[:3]
-    trend_str  = ", ".join(trending) if trending else None
-
-    def sig_label(sk: str) -> str:
-        return sk.replace("_", " ")
-
-    # P1: Consumer Pulse
-    p1_sigs    = " and ".join(f"**{sig_label(s)}**" for s, _ in top2)
-    mood       = "crisis-driven" if crisis_pct > sport_pct else "entertainment-led"
-    ramadan_p1 = " Ramadan is amplifying late-night activity and iftar-related consumption." if is_ramadan else ""
-    p1 = (f"Consumer attention in {market} is concentrated around {p1_sigs}, "
-          f"which together dominate the signal landscape. "
-          f"The overall mood is {mood}, with {top_cat_label} emerging as the strongest category.{ramadan_p1}")
-
-    # P2: What's Driving It
-    drivers = []
-    if crisis_pct >= 20:
-        drivers.append(f"elevated regional crisis coverage ({crisis_pct}% of trending topics)")
-    if sport_pct >= 20:
-        drivers.append(f"strong sports and entertainment engagement ({sport_pct}%)")
-    if is_ramadan:
-        drivers.append("the Ramadan consumption cycle shifting peak hours to evenings")
-    if trend_str:
-        drivers.append(f"trending conversations around {trend_str}")
-    if not drivers:
-        drivers.append("a mix of seasonal and regional factors")
-    p2 = (f"This pattern is being driven by {'; '.join(drivers)}. "
-          f"The {sig_label(top2[0][0])} signal in particular reflects the current media environment "
-          f"across MENA, with audiences actively tracking developing stories alongside daily life.")
-
-    # P3: Media Implication
-    if crisis_pct >= 20:
-        action = (f"avoid hard promotional messaging this week — "
-                  f"contextual and empathy-led creatives will perform better alongside "
-                  f"{sig_label(top2[0][0])} content environments")
-    elif is_ramadan:
-        action = (f"activate Ramadan prime time (9–11pm) — iftar-moment sponsorships "
-                  f"and evening digital placements capture peak {sig_label(top2[1][0])} engagement")
-    else:
-        action = (f"lean into {top_cat_label.lower()} environments — "
-                  f"the {sig_label(top2[0][0])} signal suggests audiences are primed "
-                  f"for discovery content over hard sell this week")
-    p3 = f"For media planners in {market}: {action}."
-
-    return f"{p1}\n\n{p2}\n\n{p3}"
-
-
-def generate_all_summaries(data: dict, config: dict) -> dict:
-    markets = ["UAE", "KSA", "Kuwait", "Qatar"]
-    log.info("\n🤖 Generating market summaries...")
-    summaries = {}
-    for market in markets:
-        try:
-            text = generate_market_summary(market, data, config)
-            summaries[market] = text
-            log.info(f"  ✓ {market} ({len(text.split())} words)")
-        except Exception as e:
-            log.warning(f"  ✗ {market}: {e}")
-    return summaries
 
 
 # ── Entry ─────────────────────────────────────────────────────────────────────
