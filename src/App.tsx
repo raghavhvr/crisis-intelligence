@@ -853,7 +853,7 @@ export default function App(){
                   const catType = activeCat==="escapism"||activeCat==="entertainment" ? "sport"
                     : activeCat==="crisis_awareness"||activeCat==="news" ? "crisis" : "econ";
                   const histData = history.slice(-30).map((rec:any)=>({
-                    date: rec.date?.slice(5),
+                    date: (()=>{ const _d=rec.date?new Date(rec.date+'T00:00:00'):null; const _m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return _d?String(_d.getUTCDate()).padStart(2,'0')+'-'+_m[_d.getUTCMonth()]:''; })(),
                     ...Object.fromEntries(allMkts.map(m=>{
                       const vals = activeSigKeys
                         .map((s:string)=>rec.markets?.[activeMarket]?.[s])
@@ -870,8 +870,11 @@ export default function App(){
                   return (
                     <ResponsiveContainer width="100%" height={200}>
                       <LineChart data={histData}>
-                        <XAxis dataKey="date" tick={{fontSize:9,fill:"#7a9ab0"}} axisLine={false} tickLine={false}
-                          interval={Math.floor(histData.length/4)}/>
+                        <XAxis dataKey="date" axisLine={false} tickLine={false}
+                          interval={6}
+                          height={28}
+                          tick={(props:any)=>{ const {x,y,payload}=props; return <text x={x} y={y+10} fill="#7a9ab0" fontSize={9} fontFamily="DM Mono,monospace" textAnchor="middle">{payload.value}</text>; }}
+                        />
                         <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#7a9ab0"}} axisLine={false} tickLine={false} width={26}/>
                         <Tooltip content={<CustomTooltip/>}/>
                         {allMkts.map(m=>(
@@ -958,12 +961,8 @@ export default function App(){
                   <LineChart data={historyChart}>
                     <XAxis dataKey="date" axisLine={false} tickLine={false}
                       interval={6}
-                      height={36}
-                      tick={(props:any)=>{
-                        const {x,y,payload} = props;
-                        return <text x={x} y={y+2} fill="#7a9ab0" fontSize={9} fontFamily="DM Mono,monospace"
-                          textAnchor="end" transform={`rotate(-45,${x},${y+2})`}>{payload.value}</text>;
-                      }}
+                      height={28}
+                      tick={(props:any)=>{ const {x,y,payload}=props; return <text x={x} y={y+10} fill="#7a9ab0" fontSize={9} fontFamily="DM Mono,monospace" textAnchor="middle">{payload.value}</text>; }}
                     />
                     <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#7a9ab0"}} axisLine={false} tickLine={false} width={26}/>
                     <Tooltip content={<CustomTooltip/>}/>
@@ -998,12 +997,12 @@ export default function App(){
         {/* ── Twitch ── */}
         {twitch.total_viewers > 0 && (
           <div>
-            <div className="sec">Live Gaming · Twitch Top 100 Streams · Global Signal · Right Now</div>
+            <div className="sec">Live Gaming · Twitch · MENA Languages (AR/TR/FA) · Right Now</div>
             <div className="card">
               <div className="twitch-row">
                 <div className="twitch-stat">
                   <div className="twitch-num">{fmt(twitch.total_viewers||0)}</div>
-                  <div className="twitch-lbl">Viewers (Top 100 Streams · Global)</div>
+                  <div className="twitch-lbl">Live Viewers · MENA Languages</div>
                 </div>
                 <div className="game-rows">
                   {(twitch.top_games||[]).map((g:any,i:number)=>{
