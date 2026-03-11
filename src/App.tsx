@@ -206,6 +206,7 @@ function SignalRow({sigKey,sig,markets,activeMarket,dates,newsapi,guardian,newsa
 function SettingsPanel({config,onClose,onSave}:{config:any,onClose:()=>void,onSave:(c:any)=>Promise<void>}){
   const [draft,setDraft]     = useState(()=>JSON.parse(JSON.stringify(config)));
   const [pat,setPat]         = useState(()=>localStorage.getItem("gh_pat")||"");
+  const [geminiKeyDraft,setGeminiKeyDraft] = useState(()=>localStorage.getItem("gemini_key")||"");
   const [saving,setSaving]   = useState(false);
   const [msg,setMsg]         = useState("");
 
@@ -238,6 +239,18 @@ function SettingsPanel({config,onClose,onSave}:{config:any,onClose:()=>void,onSa
             <input type="password" className="sp-input" value={pat}
               placeholder="ghp_xxxxxxxxxxxx"
               onChange={e=>setPat(e.target.value)} />
+          </div>
+          <div className="sp-pat-row" style={{marginTop:10}}>
+            <label className="sp-label" style={{display:"flex",alignItems:"center",gap:8}}>
+              Gemini API Key <span style={{color:"#B0F467",fontSize:9,fontWeight:600}}>FREE</span>
+              <a href="https://aistudio.google.com/apikey" target="_blank"
+                style={{color:"rgba(255,255,255,0.35)",fontSize:9,textDecoration:"none"}}>
+                ↗ aistudio.google.com
+              </a>
+            </label>
+            <input type="password" className="sp-input" value={geminiKeyDraft}
+              placeholder="AIzaSy…"
+              onChange={e=>{ setGeminiKeyDraft(e.target.value); localStorage.setItem("gemini_key",e.target.value); }} />
           </div>
           <div className="sp-divider"/>
           {Object.entries(draft.categories).map(([catKey,cat]:any)=>(
@@ -285,9 +298,9 @@ function SettingsPanel({config,onClose,onSave}:{config:any,onClose:()=>void,onSa
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 // ── AI Exec Summary ──────────────────────────────────────────────────────────
-function ExecSummary({ activeMarket, categories, newsapiByMarket, guardian, rss, history, isRamadan, fetched_at }:{
+function ExecSummary({ activeMarket, categories, newsapiByMarket, guardian, rss, history, isRamadan, fetched_at, geminiKey }:{
   activeMarket:string; categories:any; newsapiByMarket:any; guardian:any;
-  rss:any; history:any[]; isRamadan:boolean; fetched_at:string;
+  rss:any; history:any[]; isRamadan:boolean; fetched_at:string; geminiKey:string;
 }){
   const [summary, setSummary] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -297,6 +310,12 @@ function ExecSummary({ activeMarket, categories, newsapiByMarket, guardian, rss,
 
   useEffect(()=>{
     if(!activeMarket || !categories) return;
+    if(!geminiKey || geminiKey.length < 10){
+      setSummary("");
+      setError("no_key");
+      setLoading(false);
+      return;
+    }
     // Cancel previous request
     if(abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
@@ -364,19 +383,25 @@ PARAGRAPH 3 — "Media Implication": One sharp, actionable recommendation for a 
 
 Rules: Be direct, no fluff. Use signal names naturally. Maximum 180 words total. No headers or bullet points — flowing prose only. End with a single bolded "Signal Alert" sentence if any category shows >15 point week-on-week swing.`;
 
-    fetch("https://api.anthropic.com/v1/messages", {
+    // Gemini 1.5 Flash — free tier (15 req/min). Get a key: https://aistudio.google.com/apikey
+    const GEMINI_KEY = geminiKey;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_KEY}`;
+
+    fetch(geminiUrl, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1000,
-        stream:true,
-        messages:[{role:"user",content:prompt}]
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{ maxOutputTokens:400, temperature:0.7 }
       }),
       signal: abortRef.current.signal
     })
     .then(async res=>{
-      if(!res.ok){ throw new Error(`API ${res.status}`); }
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        const msg = err?.error?.message||`HTTP ${res.status}`;
+        throw new Error(msg);
+      }
       const reader = res.body!.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -389,14 +414,11 @@ Rules: Be direct, no fluff. Use signal names naturally. Maximum 180 words total.
         for(const line of lines){
           if(!line.startsWith("data: ")) continue;
           const raw = line.slice(6).trim();
-          if(raw==="[DONE]") break;
+          if(!raw || raw==="[DONE]") continue;
           try{
             const ev = JSON.parse(raw);
-            // Anthropic SSE: content_block_delta has delta.type="text_delta" and delta.text
-            const delta =
-              (ev.type==="content_block_delta" && ev.delta?.type==="text_delta" && ev.delta.text) ||
-              (ev.delta?.text) ||
-              (ev.content?.[0]?.text) || "";
+            // Gemini SSE: candidates[0].content.parts[0].text
+            const delta = ev.candidates?.[0]?.content?.parts?.[0]?.text || "";
             if(delta) setSummary(prev=>prev+delta);
           }catch{}
         }
@@ -405,13 +427,13 @@ Rules: Be direct, no fluff. Use signal names naturally. Maximum 180 words total.
     })
     .catch(e=>{
       if(e.name!=="AbortError"){
-        setError("Could not generate summary. Check API key.");
+        setError(`Summary unavailable: ${e.message}. Add a free Gemini key from aistudio.google.com`);
         setLoading(false);
       }
     });
 
     return ()=>{ abortRef.current?.abort(); };
-  }, [activeMarket]);
+  }, [activeMarket, geminiKey]);
 
   const flagMap:Record<string,string> = {UAE:"🇦🇪",KSA:"🇸🇦",Kuwait:"🇰🇼",Qatar:"🇶🇦"};
   const date = new Date(fetched_at).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
@@ -461,8 +483,14 @@ Rules: Be direct, no fluff. Use signal names naturally. Maximum 180 words total.
       </div>
 
       {/* body */}
-      {error ? (
-        <div style={{fontSize:12,color:"rgba(255,100,100,0.7)"}}>{error}</div>
+      {error==="no_key" ? (
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",fontStyle:"italic"}}>
+          Add a free Gemini API key in ⚙ Settings to enable AI-generated market intelligence.{" "}
+          <a href="https://aistudio.google.com/apikey" target="_blank"
+            style={{color:"#B0F467",textDecoration:"none"}}>Get one free →</a>
+        </div>
+      ) : error ? (
+        <div style={{fontSize:12,color:"rgba(255,120,100,0.8)"}}>{error}</div>
       ) : (
         <div style={{
           fontSize:13,lineHeight:1.75,color:"rgba(255,255,255,0.85)",
@@ -502,6 +530,16 @@ export default function App(){
   const [activeCat,    setActiveCat]    = useState<string|null>(null);
   const [historyDays,  setHistoryDays]  = useState(30);
   const [showSettings, setShowSettings] = useState(false);
+  const [geminiKey, setGeminiKey]       = useState(()=>localStorage.getItem("gemini_key")||"");
+
+  // Keep geminiKey in sync if user updates it in settings
+  useEffect(()=>{
+    const onStorage = () => setGeminiKey(localStorage.getItem("gemini_key")||"");
+    window.addEventListener("storage", onStorage);
+    // Also poll (same-tab localStorage changes don't fire storage event)
+    const id = setInterval(()=>{ const k=localStorage.getItem("gemini_key")||""; setGeminiKey(k); },1000);
+    return ()=>{ window.removeEventListener("storage",onStorage); clearInterval(id); };
+  },[]);
   const [configSha,    setConfigSha]    = useState("");
 
   useEffect(()=>{
@@ -996,6 +1034,7 @@ export default function App(){
           history={history}
           isRamadan={!!isRamadan}
           fetched_at={data.fetched_at||new Date().toISOString()}
+          geminiKey={geminiKey}
         />
 
         {/* ── Category overview ── */}
