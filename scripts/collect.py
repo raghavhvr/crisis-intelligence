@@ -530,43 +530,49 @@ def build_prompt(market: str, data: dict, config: dict) -> str:
 
 
 def generate_summary(prompt: str) -> str:
-    """Call LLM7 (no key needed, OpenAI-compatible) to generate market summary."""
+    """Call mlvoca (tinyllama — fast, no reasoning blocks, no IP restrictions)."""
     import urllib.request
     payload = json.dumps({
-        "model": "codestral-latest",
-        "max_tokens": 300,
-        "temperature": 0.7,
+        "model": "tinyllama",
+        "prompt": prompt,
         "stream": False,
-        "messages": [{"role": "user", "content": prompt}]
+        "options": {"temperature": 0.7, "num_predict": 250}
     }).encode()
     req = urllib.request.Request(
-        "https://api.llm7.io/v1/chat/completions",
+        "https://mlvoca.com/api/generate",
         data=payload,
-        headers={"Content-Type": "application/json", "Authorization": "Bearer unused"},
+        headers={"Content-Type": "application/json"},
         method="POST"
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=45) as resp:
             result = json.loads(resp.read())
-            return result["choices"][0]["message"]["content"].strip()
+            return result.get("response", "").strip()
     except Exception as e:
-        log.warning(f"  LLM7 failed for {prompt[:40]}: {e}")
+        log.warning(f"  mlvoca failed: {e}")
         return ""
 
 
 def generate_all_summaries(data: dict, config: dict) -> dict:
+    """Generate summaries for all markets in parallel to save time."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     markets = ["UAE", "KSA", "Kuwait", "Qatar"]
-    summaries = {}
-    log.info("\n🤖 Generating AI summaries...")
-    for market in markets:
-        log.info(f"  {market}...")
+    log.info("\n🤖 Generating AI summaries (parallel)...")
+
+    def _gen(market):
         prompt = build_prompt(market, data, config)
-        text = generate_summary(prompt)
-        if text:
-            summaries[market] = text
-            log.info(f"  ✓ {market} ({len(text)} chars)")
-        else:
-            log.warning(f"  ✗ {market} summary failed")
+        return market, generate_summary(prompt)
+
+    summaries = {}
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futures = {ex.submit(_gen, m): m for m in markets}
+        for future in as_completed(futures):
+            market, text = future.result()
+            if text:
+                summaries[market] = text
+                log.info(f"  ✓ {market} ({len(text)} chars)")
+            else:
+                log.warning(f"  ✗ {market} summary failed")
     return summaries
 
 # ── Entry ─────────────────────────────────────────────────────────────────────
