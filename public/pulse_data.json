@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-03-11T06:06:01.455503+00:00",
+  "fetched_at": "2026-03-11T10:37:29.118278+00:00",
   "dates": [
     "Mar 04",
     "Mar 05",
@@ -14,7 +14,7 @@
     "escapism": {
       "label": "Escapism & Entertainment",
       "icon": "\u25c8",
-      "color": "#00f5d4",
+      "color": "#B0F467",
       "hypothesis": "Stress drives people toward distraction and comfort content",
       "ramadan_only": false,
       "signals": [
@@ -27,7 +27,7 @@
     "crisis_awareness": {
       "label": "News & Crisis Awareness",
       "icon": "\u25ce",
-      "color": "#f72585",
+      "color": "#5465FF",
       "hypothesis": "Crisis triggers spike in news consumption and information seeking",
       "ramadan_only": false,
       "signals": [
@@ -42,7 +42,7 @@
     "economic_anxiety": {
       "label": "Economic Anxiety",
       "icon": "\u25c7",
-      "color": "#fb8500",
+      "color": "#FCFE67",
       "hypothesis": "Financial stress changes search and purchase intent signals",
       "ramadan_only": false,
       "signals": [
@@ -57,7 +57,7 @@
     "behavioral_shifts": {
       "label": "Behavioral Shifts",
       "icon": "\u25d0",
-      "color": "#8338ec",
+      "color": "#93DFE3",
       "hypothesis": "Crisis changes how people shop, move and spend time",
       "ramadan_only": false,
       "signals": [
@@ -70,7 +70,7 @@
     "wellness": {
       "label": "Wellness & Mental Health",
       "icon": "\u25c9",
-      "color": "#06d6a0",
+      "color": "#00DBEE",
       "hypothesis": "Prolonged stress surfaces as wellness and mental health interest",
       "ramadan_only": false,
       "signals": [
@@ -84,7 +84,7 @@
     "social_community": {
       "label": "Social & Community",
       "icon": "\u25c6",
-      "color": "#fee440",
+      "color": "#788BFF",
       "hypothesis": "Crisis drives community-seeking and prosocial behavior",
       "ramadan_only": false,
       "signals": [
@@ -96,7 +96,7 @@
     "ramadan": {
       "label": "Ramadan",
       "icon": "\u263d",
-      "color": "#ffd166",
+      "color": "#FCFE67",
       "hypothesis": "Ramadan shifts consumption patterns \u2014 iftar, late-night, Eid prep",
       "ramadan_only": true,
       "signals": [
@@ -1722,92 +1722,92 @@
     },
     "rss_trends": {
       "UAE": {
-        "sport_entertainment_pct": 30,
-        "crisis_pct": 10,
+        "sport_entertainment_pct": 0,
+        "crisis_pct": 30,
         "top_topics": [
-          "nba standings",
-          "warriors vs bulls",
-          "lakers vs timberwolves",
-          "alexandra eala",
-          "bam adebayo",
-          "indian wells 2026",
-          "weather",
-          "\u0627\u0644\u0637\u0642\u0633",
-          "airblue",
-          "dubai uae iran"
+          "dubai airport iran war",
+          "dubai iran attack",
+          "mehidy hasan miraz",
+          "eid",
+          "icc",
+          "instagram down",
+          "chat gtp",
+          "uae iran war",
+          "drone",
+          "eid holidays 2026 uae"
         ]
       },
       "KSA": {
-        "sport_entertainment_pct": 30,
-        "crisis_pct": 10,
+        "sport_entertainment_pct": 0,
+        "crisis_pct": 0,
         "top_topics": [
-          "\u0643\u0645 \u0628\u0627\u0642\u064a \u0639\u0644\u0649 \u0639\u064a\u062f \u0627\u0644\u0641\u0637\u0631",
-          "lakers vs timberwolves",
-          "warriors vs bulls",
-          "alexandra eala",
-          "\u0627\u0644\u0634\u0631\u0648\u0642",
-          "bam adebayo",
-          "\u0645\u064a\u0631\u0627\u0633\u0648\u0644 \u0636\u062f \u0633\u0627\u0646\u062a\u0648\u0633",
-          "ghost of yotei legends",
-          "mirassol vs santos",
-          "\u0647\u0627\u0646\u064a \u0634\u0627\u0643\u0631"
+          "nahid rana",
+          "mehidy hasan miraz",
+          "\u0627\u062c\u0627\u0632\u0629 \u0639\u064a\u062f \u0627\u0644\u0641\u0637\u0631 2026",
+          "booking",
+          "air arabia",
+          "enhypen heeseung",
+          "icc",
+          "muhammad rizwan",
+          "dammam airport",
+          "saudi flag day"
         ]
       },
       "Kuwait": {
-        "sport_entertainment_pct": 40,
-        "crisis_pct": 0,
+        "sport_entertainment_pct": 30,
+        "crisis_pct": 10,
         "top_topics": [
+          "abdul samad",
+          "maaz sadaqat",
+          "pakistan vs bangladesh",
+          "jazeera airways",
           "weather",
           "\u0627\u0644\u0637\u0642\u0633",
           "mirassol vs santos",
-          "\u062f\u0648\u0631\u064a \u0627\u0628\u0637\u0627\u0644 \u0627\u0648\u0631\u0648\u0628\u0627",
+          "\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0628\u0637\u0627\u0644",
           "\u0627\u0628\u0633\u062a\u064a\u0646",
-          "atalanta vs bayern",
-          "\u0627\u0644\u062c\u0648\u0646\u0629 \u0636\u062f \u0627\u0644\u0645\u0635\u0631\u064a",
-          "atl\u00e9tico madrid vs tottenham",
-          "newcastle vs barcelona",
-          "\u0646\u064a\u0648\u0643\u0627\u0633\u0644 \u064a\u0648\u0646\u0627\u064a\u062a\u062f \u0636\u062f \u0628\u0631\u0634\u0644\u0648\u0646\u0629"
+          "atalanta vs bayern"
         ]
       },
       "Qatar": {
-        "sport_entertainment_pct": 60,
-        "crisis_pct": 0,
+        "sport_entertainment_pct": 40,
+        "crisis_pct": 10,
         "top_topics": [
+          "abdul samad",
+          "icc",
+          "maaz sadaqat",
+          "bam adebayo",
+          "pakistan vs bangladesh",
           "alexandra eala",
           "mirassol vs santos",
           "new zealand women vs zimbabwe women",
           "barcelona vs newcastle",
-          "champions league",
-          "barca",
-          "\u062f\u0648\u0631\u064a \u0627\u0628\u0637\u0627\u0644 \u0627\u0648\u0631\u0648\u0628\u0627",
-          "atalanta vs bayern",
-          "atl\u00e9tico madrid vs tottenham",
-          "\u0646\u064a\u0648\u0643\u0627\u0633\u0644 \u064a\u0648\u0646\u0627\u064a\u062a\u062f \u0636\u062f \u0628\u0631\u0634\u0644\u0648\u0646\u0629"
+          "barca"
         ]
       }
     },
     "twitch": {
-      "total_viewers": 236123,
+      "total_viewers": 203843,
       "top_games": [
         {
-          "name": "At Night: The Nurse",
-          "viewers": 52554
-        },
-        {
-          "name": "Apex Legends",
-          "viewers": 41651
+          "name": "Dota 2",
+          "viewers": 63311
         },
         {
           "name": "Street Fighter 6",
-          "viewers": 40642
+          "viewers": 49445
+        },
+        {
+          "name": "League of Legends",
+          "viewers": 28243
         },
         {
           "name": "Just Chatting",
-          "viewers": 22203
+          "viewers": 22471
         },
         {
-          "name": "Grand Theft Auto V",
-          "viewers": 18771
+          "name": "Super Mario 64",
+          "viewers": 12848
         }
       ]
     }
@@ -1816,32 +1816,32 @@
     "newsapi": {
       "UAE": {
         "gaming": 0,
-        "streaming": 2,
+        "streaming": 0,
         "humour": 0,
         "beauty": 0,
-        "breaking_news": 3,
-        "crisis_topics": 7,
-        "war_news": 388,
-        "flight_searches": 14,
+        "breaking_news": 0,
+        "crisis_topics": 0,
+        "war_news": 0,
+        "flight_searches": 0,
         "fact_checking": 0,
-        "social_news": 3,
+        "social_news": 0,
         "price_comparison": 0,
         "discounts": 0,
         "budgeting": 0,
-        "inflation": 10,
-        "panic_buying": 1,
+        "inflation": 0,
+        "panic_buying": 0,
         "panic_selling": 0,
         "food_delivery": 0,
         "online_shopping": 0,
         "home_improvement": 0,
         "travel": 0,
-        "mental_health": 4,
+        "mental_health": 0,
         "meditation": 0,
         "fitness": 0,
         "sleep": 0,
         "therapy": 0,
-        "charity": 1,
-        "volunteering": 1,
+        "charity": 0,
+        "volunteering": 0,
         "community": 0,
         "iftar_delivery": 0,
         "late_night": 0,
@@ -1953,32 +1953,32 @@
     },
     "newsapi_global": {
       "gaming": 0,
-      "streaming": 2,
+      "streaming": 0,
       "humour": 0,
       "beauty": 0,
-      "breaking_news": 3,
-      "crisis_topics": 7,
-      "war_news": 388,
-      "flight_searches": 14,
+      "breaking_news": 0,
+      "crisis_topics": 0,
+      "war_news": 0,
+      "flight_searches": 0,
       "fact_checking": 0,
-      "social_news": 3,
+      "social_news": 0,
       "price_comparison": 0,
       "discounts": 0,
       "budgeting": 0,
-      "inflation": 10,
-      "panic_buying": 1,
+      "inflation": 0,
+      "panic_buying": 0,
       "panic_selling": 0,
       "food_delivery": 0,
       "online_shopping": 0,
       "home_improvement": 0,
       "travel": 0,
-      "mental_health": 4,
+      "mental_health": 0,
       "meditation": 0,
       "fitness": 0,
       "sleep": 0,
       "therapy": 0,
-      "charity": 1,
-      "volunteering": 1,
+      "charity": 0,
+      "volunteering": 0,
       "community": 0,
       "iftar_delivery": 0,
       "late_night": 0,
@@ -1986,38 +1986,38 @@
       "suhoor": 0
     },
     "guardian": {
-      "gaming": 18,
-      "streaming": 22,
-      "humour": 52,
-      "beauty": 44,
-      "breaking_news": 478,
-      "crisis_topics": 276,
-      "war_news": 461,
-      "flight_searches": 45,
+      "gaming": 19,
+      "streaming": 24,
+      "humour": 53,
+      "beauty": 45,
+      "breaking_news": 491,
+      "crisis_topics": 282,
+      "war_news": 476,
+      "flight_searches": 47,
       "fact_checking": 19,
-      "social_news": 233,
-      "price_comparison": 92,
+      "social_news": 240,
+      "price_comparison": 96,
       "discounts": 35,
-      "budgeting": 22,
-      "inflation": 89,
+      "budgeting": 24,
+      "inflation": 92,
       "panic_buying": 64,
-      "panic_selling": 82,
-      "food_delivery": 50,
-      "online_shopping": 49,
-      "home_improvement": 95,
-      "travel": 128,
-      "mental_health": 55,
-      "meditation": 6,
-      "fitness": 22,
-      "sleep": 56,
-      "therapy": 36,
-      "charity": 40,
+      "panic_selling": 86,
+      "food_delivery": 52,
+      "online_shopping": 50,
+      "home_improvement": 101,
+      "travel": 135,
+      "mental_health": 57,
+      "meditation": 7,
+      "fitness": 24,
+      "sleep": 60,
+      "therapy": 37,
+      "charity": 44,
       "volunteering": 3,
-      "community": 165,
-      "iftar_delivery": 16,
-      "late_night": 17,
+      "community": 170,
+      "iftar_delivery": 18,
+      "late_night": 19,
       "eid_shopping": 4,
-      "suhoor": 13
+      "suhoor": 15
     }
   },
   "sources_live": [
