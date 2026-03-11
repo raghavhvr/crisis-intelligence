@@ -177,7 +177,7 @@ def fetch_twitch(client_id: str, client_secret: str) -> dict:
                                 "grant_type": "client_credentials"}, timeout=10)
         if t.status_code != 200: return {}
         token   = t.json()["access_token"]
-        s       = requests.get("https://api.twitch.tv/helix/streams", params={"first": 20},
+        s       = requests.get("https://api.twitch.tv/helix/streams", params={"first": 100},
                                headers={"Client-Id": client_id, "Authorization": f"Bearer {token}"}, timeout=10)
         streams = s.json().get("data", []) if s.status_code == 200 else []
         games: dict[str, int] = {}
