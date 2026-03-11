@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-03-11T12:47:04.363578+00:00",
+  "fetched_at": "2026-03-11T12:52:06.757548+00:00",
   "dates": [
     "Mar 04",
     "Mar 05",
@@ -1724,6 +1724,10 @@
       "UAE": {
         "sport_entertainment_pct": 10,
         "crisis_pct": 20,
+        "economic_pct": 0,
+        "social_pct": 10,
+        "wellness_pct": 0,
+        "ramadan_pct": 0,
         "top_topics": [
           "instagram outage",
           "litton das",
@@ -1740,22 +1744,30 @@
       "KSA": {
         "sport_entertainment_pct": 0,
         "crisis_pct": 0,
+        "economic_pct": 0,
+        "social_pct": 0,
+        "wellness_pct": 0,
+        "ramadan_pct": 10,
         "top_topics": [
+          "\u0645\u062a\u0649 \u064a\u0648\u0645 \u0627\u0644\u0639\u0644\u0645 \u0627\u0644\u0633\u0639\u0648\u062f\u064a",
           "gulf air flights",
           "litton das",
+          "\u0648\u0635\u0648\u0644",
           "mehidy hasan miraz",
           "\u0627\u062c\u0627\u0632\u0629 \u0639\u064a\u062f \u0627\u0644\u0641\u0637\u0631 2026",
           "booking",
           "claude ai",
           "mustafizur rahman",
-          "air arabia",
-          "enhypen heeseung",
-          "icc"
+          "air arabia"
         ]
       },
       "Kuwait": {
         "sport_entertainment_pct": 30,
         "crisis_pct": 10,
+        "economic_pct": 0,
+        "social_pct": 0,
+        "wellness_pct": 0,
+        "ramadan_pct": 0,
         "top_topics": [
           "\u0637\u064a\u0631\u0627\u0646 \u0627\u0644\u062c\u0632\u064a\u0631\u0629",
           "abdul samad",
@@ -1772,6 +1784,10 @@
       "Qatar": {
         "sport_entertainment_pct": 40,
         "crisis_pct": 10,
+        "economic_pct": 0,
+        "social_pct": 0,
+        "wellness_pct": 0,
+        "ramadan_pct": 0,
         "top_topics": [
           "abdul samad",
           "icc",
@@ -1787,11 +1803,11 @@
       }
     },
     "twitch": {
-      "total_viewers": 6064,
+      "total_viewers": 6154,
       "top_games": [
         {
           "name": "Rise Online",
-          "viewers": 907
+          "viewers": 901
         },
         {
           "name": "Just Chatting",
@@ -1799,15 +1815,15 @@
         },
         {
           "name": "Knight Online",
-          "viewers": 742
+          "viewers": 743
         },
         {
           "name": "Black Desert",
-          "viewers": 474
+          "viewers": 510
         },
         {
           "name": "Counter-Strike",
-          "viewers": 474
+          "viewers": 484
         }
       ]
     }
@@ -1818,16 +1834,16 @@
       "streaming": 25,
       "humour": 53,
       "beauty": 45,
-      "breaking_news": 502,
-      "crisis_topics": 287,
-      "war_news": 482,
+      "breaking_news": 503,
+      "crisis_topics": 288,
+      "war_news": 483,
       "flight_searches": 47,
       "fact_checking": 21,
       "social_news": 246,
-      "price_comparison": 99,
+      "price_comparison": 100,
       "discounts": 36,
       "budgeting": 25,
-      "inflation": 94,
+      "inflation": 95,
       "panic_buying": 66,
       "panic_selling": 87,
       "food_delivery": 52,
