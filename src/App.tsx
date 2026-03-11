@@ -435,6 +435,25 @@ export default function App(){
     ? Object.keys(categories[activeCat]?.signals||{})
     : Object.keys(flatSigs);
 
+  // ── RSS bucket weight helper ────────────────────────────────────────────────
+  // Maps a dashboard category key → the appropriate RSS bucket weight.
+  // Returns a multiplier where 1.0 = average market intensity for that bucket.
+  const rssWeight = (ck: string, r: any): number => {
+    const sport    = ((r.sport_entertainment_pct??50)) / 50;
+    const crisis   = ((r.crisis_pct??50))              / 50;
+    const economic = ((r.economic_pct??50))             / 50;
+    const social   = ((r.social_pct??50))               / 50;
+    const wellness = ((r.wellness_pct??50))             / 50;
+    const ramadan  = ((r.ramadan_pct??0))               / 50;
+    if(ck==="escapism"||ck==="entertainment")          return sport;
+    if(ck==="crisis_awareness"||ck==="news")           return crisis;
+    if(ck==="economic"||ck==="behavioral_shifts")      return economic;
+    if(ck==="social")                                  return social;
+    if(ck==="wellness")                                return wellness;
+    if(ck==="ramadan")                                 return ramadan > 0 ? ramadan : sport * 0.7;
+    return (sport + crisis + economic) / 3;
+  };
+
   // History chart: per-market via RSS-weighted newsapi volumes from history
   // Legacy history has identical wiki values across markets — we apply the CURRENT
   // RSS weights (most recent rss_trends) as a stable market multiplier so each
