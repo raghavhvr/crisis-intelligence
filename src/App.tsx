@@ -46,28 +46,52 @@ function RamadanBanner({endDate}:{endDate:string}){
 
 // ── Category score card ───────────────────────────────────────────────────────
 function CategoryCard({
-  cat, catKey, signals, markets, activeMarket, isActive, onClick
+  cat, catKey, signals, markets, activeMarket, isActive, onClick,
+  newsapi, guardian, rss
 }:{
   cat:any, catKey:string, signals:Record<string,any>,
-  markets:any, activeMarket:string, isActive:boolean, onClick:()=>void
+  markets:any, activeMarket:string, isActive:boolean, onClick:()=>void,
+  newsapi:any, guardian:any, rss:any
 }){
   const catSignals = Object.keys(signals).filter(k=>signals[k].category===catKey);
-  const values = catSignals.map(k=>{
+
+  // News volume score: sum of newsapi+guardian for this category's signals
+  // This is market-agnostic but gives a real content intensity measure
+  const newsTotal = catSignals.reduce((acc,k)=>{
+    return acc + (newsapi[k]||0) + (guardian[k]||0);
+  }, 0);
+
+  // Wikipedia index: global signal, same across markets (honest)
+  const wikiValues = catSignals.map(k=>{
     const v = markets[activeMarket]?.[k];
-    return Array.isArray(v) ? v[v.length-1] : (v??0);
-  }).filter(v=>v!==null);
-  const avg = values.length ? Math.round(values.reduce((a,b)=>a+b,0)/values.length) : 0;
+    return Array.isArray(v) ? v[v.length-1] : null;
+  }).filter(v=>v!==null) as number[];
+  const wikiAvg = wikiValues.length
+    ? Math.round(wikiValues.reduce((a,b)=>a+b,0)/wikiValues.length)
+    : null;
 
-  // mini sparkline — average across signals per date index
+  // RSS market signal: use crisis% for crisis_awareness cat, sport% for escapism, combined for others
+  const rssMarket = rss[activeMarket]||{};
+  let rssSignal = 0;
+  if(catKey==="crisis_awareness") rssSignal = rssMarket.crisis_pct||0;
+  else if(catKey==="escapism")    rssSignal = rssMarket.sport_entertainment_pct||0;
+  else rssSignal = Math.round(((rssMarket.sport_entertainment_pct||0)+(rssMarket.crisis_pct||0))/2);
+
+  // Display score: wiki if available, else news-normalised
+  const displayScore = wikiAvg !== null ? wikiAvg : Math.min(99, Math.round(newsTotal/50));
+
+  // Sparkline from wiki 7-day series (averaged across signals)
   const marketData = markets[activeMarket]||{};
-  const len = Math.max(...catSignals.map(k=>marketData[k]?.length||0),0);
-  const sparkData = Array.from({length:Math.min(len,8)},(_,i)=>{
-    const vs = catSignals.map(k=>marketData[k]?.[i]).filter(v=>v!=null) as number[];
-    return vs.length ? Math.round(vs.reduce((a,b)=>a+b,0)/vs.length) : 0;
-  });
+  const len = Math.max(...catSignals.map(k=>Array.isArray(marketData[k])?marketData[k].length:0), 0);
+  const sparkData = len > 0
+    ? Array.from({length:Math.min(len,8)},(_,i)=>{
+        const vs = catSignals.map(k=>marketData[k]?.[i]).filter(v=>v!=null) as number[];
+        return vs.length ? Math.round(vs.reduce((a,b)=>a+b,0)/vs.length) : 0;
+      })
+    : [20,25,22,28,30,27,32,displayScore]; // placeholder shape until collector runs
   const sparkMax = Math.max(...sparkData,1);
-
   const trend = sparkData.length>=2 ? sparkData[sparkData.length-1]-sparkData[0] : 0;
+  const hasRealData = len > 0;
 
   return (
     <div className={`cat-card ${isActive?"active":""}`}
@@ -77,20 +101,37 @@ function CategoryCard({
         <span className="cat-icon">{cat.icon}</span>
         <div className="cat-meta">
           <div className="cat-label">{cat.label}</div>
-          <div className="cat-sig-count">{catSignals.length} signals</div>
+          <div className="cat-sig-count">{catSignals.length} signals
+            {!hasRealData && <span style={{color:"var(--muted)",marginLeft:6,fontSize:8}}>· pending run</span>}
+          </div>
         </div>
         <div className="cat-score-wrap">
-          <div className="cat-score">{avg}</div>
+          <div className="cat-score" style={{opacity:hasRealData?1:0.4}}>{displayScore}</div>
           <div className={`cat-trend ${trend>0?"up":trend<0?"down":"flat"}`}>
             {trend>0?"▲":trend<0?"▼":"→"} {Math.abs(Math.round(trend))}
           </div>
         </div>
       </div>
+      {/* RSS market bar — this DOES differ per market */}
+      {rssSignal > 0 && (
+        <div style={{marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+            <span style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)"}}>
+              {catKey==="crisis_awareness"?"CRISIS SIGNAL":catKey==="escapism"?"SPORT/ENT SIGNAL":"RSS SIGNAL"} · {activeMarket}
+            </span>
+            <span style={{fontFamily:"var(--mono)",fontSize:8,color:cat.color}}>{rssSignal}%</span>
+          </div>
+          <div style={{height:3,background:"var(--border)",borderRadius:2,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${rssSignal}%`,background:cat.color,
+              borderRadius:2,transition:"width .4s"}}/>
+          </div>
+        </div>
+      )}
       <div className="cat-sparkline">
         {sparkData.map((v,i)=>(
           <div key={i} className="spark-bar"
             style={{height:`${Math.round((v/sparkMax)*28)+2}px`,background:cat.color,
-              opacity:i===sparkData.length-1?1:0.35+i*0.08}} />
+              opacity:hasRealData?(i===sparkData.length-1?1:0.35+i*0.08):0.2}} />
         ))}
       </div>
       <div className="cat-hypothesis">{cat.hypothesis}</div>
@@ -615,7 +656,8 @@ export default function App(){
                 signals={flatSigs} markets={markets}
                 activeMarket={activeMarket}
                 isActive={activeCat===ck}
-                onClick={()=>setActiveCat(activeCat===ck?null:ck)} />
+                onClick={()=>setActiveCat(activeCat===ck?null:ck)}
+                newsapi={newsapi} guardian={guardian} rss={rss} />
             ))}
           </div>
         </div>
