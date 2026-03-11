@@ -870,9 +870,9 @@ export default function App(){
                   return (
                     <ResponsiveContainer width="100%" height={200}>
                       <LineChart data={histData}>
-                        <XAxis dataKey="date" tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false}
+                        <XAxis dataKey="date" tick={{fontSize:9,fill:"#7a9ab0"}} axisLine={false} tickLine={false}
                           interval={Math.floor(histData.length/4)}/>
-                        <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} width={26}/>
+                        <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#7a9ab0"}} axisLine={false} tickLine={false} width={26}/>
                         <Tooltip content={<CustomTooltip/>}/>
                         {allMkts.map(m=>(
                           <Line key={m} type="monotone" dataKey={m} name={m}
@@ -961,11 +961,11 @@ export default function App(){
                       height={36}
                       tick={(props:any)=>{
                         const {x,y,payload} = props;
-                        return <text x={x} y={y+2} fill="#3d5060" fontSize={9} fontFamily="DM Mono,monospace"
+                        return <text x={x} y={y+2} fill="#7a9ab0" fontSize={9} fontFamily="DM Mono,monospace"
                           textAnchor="end" transform={`rotate(-45,${x},${y+2})`}>{payload.value}</text>;
                       }}
                     />
-                    <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} width={26}/>
+                    <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#7a9ab0"}} axisLine={false} tickLine={false} width={26}/>
                     <Tooltip content={<CustomTooltip/>}/>
                     {catKeys.map(ck=>(
                       <Line key={ck} type="monotone" dataKey={ck}
