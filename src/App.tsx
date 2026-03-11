@@ -365,25 +365,31 @@ PARAGRAPH 3 — "Media Implication": One sharp, actionable recommendation for a 
 
 Rules: Be direct, no fluff. Use signal names naturally. Maximum 180 words total. No headers or bullet points — flowing prose only. End with a single bolded "Signal Alert" sentence if any category shows >15 point week-on-week swing.`;
 
-    // LLM7.io — completely free, no API key, OpenAI-compatible, 40 req/min
-    // https://llm7.io — runs DeepSeek, Llama, GPT-4o-mini etc.
-    fetch("https://api.llm7.io/v1/chat/completions", {
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer unused"},
-      body: JSON.stringify({
-        model:"gpt-4o-mini-2024-07-18",
-        max_tokens:400,
-        temperature:0.7,
-        stream:true,
-        messages:[{role:"user",content:prompt}]
-      }),
-      signal: abortRef.current.signal
-    })
-    .then(async res=>{
-      if(!res.ok){
-        const err = await res.json().catch(()=>({}));
-        throw new Error(err?.error?.message||`HTTP ${res.status}`);
-      }
+    // Cascading free providers — tries each in order, no API key needed
+    const PROVIDERS = [
+      // mlvoca: Ollama-based, no key, no rate limit documented
+      {
+        url: "https://mlvoca.com/api/generate",
+        body: (p:string) => JSON.stringify({ model:"deepseek-r1:1.5b", prompt:p, stream:true }),
+        headers: {"Content-Type":"application/json"},
+        parse: (raw:string) => { try{ return JSON.parse(raw).response||""; }catch{ return ""; } },
+        streamFormat: "ndjson" as const,
+      },
+      // LLM7: OpenAI-compatible, no key, 40 req/min
+      {
+        url: "https://api.llm7.io/v1/chat/completions",
+        body: (p:string) => JSON.stringify({ model:"gpt-4o-mini-2024-07-18", max_tokens:400, temperature:0.7, stream:true, messages:[{role:"user",content:p}] }),
+        headers: {"Content-Type":"application/json","Authorization":"Bearer unused"},
+        parse: (raw:string) => { try{ return JSON.parse(raw).choices?.[0]?.delta?.content||""; }catch{ return ""; } },
+        streamFormat: "sse" as const,
+      },
+    ];
+
+    const signal = abortRef.current.signal;
+
+    async function streamFromProvider(provider: typeof PROVIDERS[0]): Promise<boolean> {
+      const res = await fetch(provider.url, { method:"POST", headers:provider.headers, body:provider.body(prompt), signal });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const reader = res.body!.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -394,23 +400,38 @@ Rules: Be direct, no fluff. Use signal names naturally. Maximum 180 words total.
         const lines = buf.split("\n");
         buf = lines.pop()||"";
         for(const line of lines){
-          if(!line.startsWith("data: ")) continue;
-          const raw = line.slice(6).trim();
-          if(!raw||raw==="[DONE]") continue;
-          try{
-            const delta = JSON.parse(raw).choices?.[0]?.delta?.content||"";
-            if(delta) setSummary(prev=>prev+delta);
-          }catch{}
+          const trimmed = line.trim();
+          if(!trimmed) continue;
+          let raw = trimmed;
+          if(provider.streamFormat==="sse"){
+            if(!trimmed.startsWith("data: ")) continue;
+            raw = trimmed.slice(6).trim();
+            if(raw==="[DONE]") continue;
+          }
+          // deepseek-r1 wraps output in <think>…</think> — strip it
+          const delta = provider.parse(raw).replace(/<think>[\s\S]*?<\/think>/g,"").replace(/<think>[\s\S]*/,"");
+          if(delta) setSummary(prev=>prev+delta);
         }
       }
-      setLoading(false);
-    })
-    .catch(e=>{
-      if(e.name!=="AbortError"){
-        setError(`Could not generate summary: ${e.message}`);
-        setLoading(false);
+      return true;
+    }
+
+    (async ()=>{
+      for(const provider of PROVIDERS){
+        try{
+          await streamFromProvider(provider);
+          setLoading(false);
+          return;
+        } catch(e:any){
+          if(e.name==="AbortError") return;
+          // 429 or error — try next provider
+          setSummary("");
+          continue;
+        }
       }
-    });
+      setError("All free AI providers are busy. Try switching market or refreshing.");
+      setLoading(false);
+    })();
 
     return ()=>{ abortRef.current?.abort(); };
   }, [activeMarket]);
