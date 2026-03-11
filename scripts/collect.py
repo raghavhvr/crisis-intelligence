@@ -177,9 +177,16 @@ def fetch_twitch(client_id: str, client_secret: str) -> dict:
                                 "grant_type": "client_credentials"}, timeout=10)
         if t.status_code != 200: return {}
         token   = t.json()["access_token"]
-        s       = requests.get("https://api.twitch.tv/helix/streams", params={"first": 100},
-                               headers={"Client-Id": client_id, "Authorization": f"Bearer {token}"}, timeout=10)
-        streams = s.json().get("data", []) if s.status_code == 200 else []
+        # Fetch streams in Arabic, Turkish, and Persian — the primary MENA streaming languages
+        MENA_LANGS = ["ar", "tr", "fa"]
+        all_streams: list[dict] = []
+        for lang in MENA_LANGS:
+            r = requests.get("https://api.twitch.tv/helix/streams",
+                             params={"first": 100, "language": lang},
+                             headers={"Client-Id": client_id, "Authorization": f"Bearer {token}"}, timeout=10)
+            if r.status_code == 200:
+                all_streams.extend(r.json().get("data", []))
+        streams = all_streams
         games: dict[str, int] = {}
         for st in streams:
             g = st.get("game_name", "Unknown")
