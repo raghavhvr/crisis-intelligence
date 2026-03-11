@@ -145,16 +145,36 @@ function CategoryCard({
 }
 
 // ── Signal row (expandable detail) ────────────────────────────────────────────
-function SignalRow({sigKey,sig,markets,activeMarket,dates,newsapi,guardian}:{
+function SignalRow({sigKey,sig,markets,activeMarket,dates,newsapi,guardian,newsapiAllMarkets}:{
   sigKey:string,sig:any,markets:any,activeMarket:string,
-  dates:string[],newsapi:any,guardian:any
+  dates:string[],newsapi:any,guardian:any,newsapiAllMarkets:any
 }){
-  const vals = markets[activeMarket]?.[sigKey]||[];
-  const curr = vals[vals.length-1]??0;
-  const prev = vals[vals.length-2]??curr;
-  const pct  = prev ? Math.round(((curr-prev)/prev)*100) : 0;
-  const chartData = dates.map((d:string,i:number)=>({date:d,value:vals[i]??null}));
-  const news  = (newsapi[sigKey]||0)+(guardian[sigKey]||0); // newsapi already market-filtered
+  // Wiki data (global — same across markets, used as baseline trend shape)
+  const wikiVals = markets[activeMarket]?.[sigKey]||[];
+
+  // Per-market news volume — this IS market-specific
+  const newsVol   = (newsapi[sigKey]||0) + (guardian[sigKey]||0);
+  const guardianV = guardian[sigKey]||0;
+
+  // Use news volume as the primary market-specific index (normalised to 0-100)
+  // Compute max across all markets for this signal to normalise
+  const allMarkets = ["UAE","KSA","Kuwait","Qatar"];
+  const allVols = allMarkets.map(m=>{
+    const na = newsapiAllMarkets?.[m]?.[sigKey]||0;
+    return na + guardianV; // guardian is global so same, but na differs
+  });
+  const maxVol = Math.max(...allVols, 1);
+  const normVol = Math.round((newsVol / maxVol) * 100);
+
+  // Trend: compare to other markets (are we above/below average?)
+  const avgVol = allVols.reduce((a,b)=>a+b,0)/allVols.length;
+  const pct = avgVol > 0 ? Math.round(((newsVol - avgVol)/avgVol)*100) : 0;
+
+  // Sparkline: use wiki shape if available (shows 7-day trend), else flat
+  const hasWiki = wikiVals.length > 0;
+  const chartData = hasWiki
+    ? dates.map((d:string,i:number)=>({date:d,value:wikiVals[i]??null}))
+    : dates.map((d:string)=>({date:d,value:normVol}));
 
   return (
     <div className="signal-row">
@@ -171,11 +191,12 @@ function SignalRow({sigKey,sig,markets,activeMarket,dates,newsapi,guardian}:{
         </ResponsiveContainer>
       </div>
       <div className="signal-row-right">
-        <div className="signal-val">{curr}</div>
-        <div className={`signal-pct ${pct>0?"up":pct<0?"down":"flat"}`}>
+        <div className="signal-val">{normVol}</div>
+        <div className={`signal-pct ${pct>0?"up":pct<0?"down":"flat"}`}
+          title={`vs market avg ${Math.round(avgVol)} articles`}>
           {pct>0?"▲":pct<0?"▼":"→"}{Math.abs(pct)}%
         </div>
-        <div className="signal-news">{fmt(news)} art.</div>
+        <div className="signal-news">{fmt(newsVol)} art.</div>
       </div>
     </div>
   );
@@ -359,16 +380,20 @@ export default function App(){
     ? Object.keys(categories[activeCat]?.signals||{})
     : Object.keys(flatSigs);
 
-  // History chart data
+  // History chart data — use wiki market values (already 0-100 normalised)
   const historySlice = history.slice(-historyDays);
   const historyChart = historySlice.map((rec:any)=>{
-    const row:any={date:rec.date?.slice(5)};
+    const row:any = {date: rec.date?.slice(5)};
     catKeys.forEach(ck=>{
       const sigs = Object.keys(categories[ck]?.signals||{});
-      const vals = Object.values(MARKET_FLAGS).flatMap(
-        m=>sigs.map(s=>rec.markets?.[m]?.[s]).filter((v:any)=>v!=null)
-      ) as number[];
-      row[ck] = vals.length ? Math.round(vals.reduce((a:number,b:number)=>a+b,0)/vals.length*10)/10 : null;
+      // Use UAE values as representative (all markets same in current data)
+      // When per-market news differentiation lands, this will use activeMarket
+      const vals: number[] = sigs
+        .map(s => rec.markets?.["UAE"]?.[s])
+        .filter((v:any) => v != null && !isNaN(Number(v))) as number[];
+      row[ck] = vals.length
+        ? Math.round(vals.reduce((a,b)=>a+b,0) / vals.length * 10) / 10
+        : null;
     });
     return row;
   });
@@ -697,7 +722,8 @@ export default function App(){
                 {activeSigKeys.map(sk=>(
                   <SignalRow key={sk} sigKey={sk} sig={flatSigs[sk]}
                     markets={markets} activeMarket={activeMarket}
-                    dates={dates} newsapi={newsapi} guardian={guardian} />
+                    dates={dates} newsapi={newsapi} guardian={guardian}
+                    newsapiAllMarkets={isPerMarket ? newsapiRaw : null} />
                 ))}
               </div>
               <div className="dp-chart-panel">
