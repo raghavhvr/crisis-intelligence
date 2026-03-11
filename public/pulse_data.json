@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-03-11T12:14:10.390838+00:00",
+  "fetched_at": "2026-03-11T12:27:30.038975+00:00",
   "dates": [
     "Mar 04",
     "Mar 05",
@@ -1723,17 +1723,17 @@
     "rss_trends": {
       "UAE": {
         "sport_entertainment_pct": 10,
-        "crisis_pct": 30,
+        "crisis_pct": 20,
         "top_topics": [
+          "instagram outage",
           "litton das",
           "difc",
           "dubai airport iran war",
-          "dubai iran attack",
           "mehidy hasan miraz",
           "icc",
+          "mustafizur rahman",
           "pakistan national cricket team vs bangladesh national cricket team match scorecard",
           "khaleej times today",
-          "instagram down",
           "chat gtp"
         ]
       },
@@ -1741,16 +1741,16 @@
         "sport_entertainment_pct": 0,
         "crisis_pct": 0,
         "top_topics": [
+          "gulf air flights",
           "mehidy hasan miraz",
           "\u0627\u062c\u0627\u0632\u0629 \u0639\u064a\u062f \u0627\u0644\u0641\u0637\u0631 2026",
           "booking",
           "claude ai",
-          "enhypen heeseung",
+          "mustafizur rahman",
           "air arabia",
+          "enhypen heeseung",
           "icc",
-          "muhammad rizwan",
-          "dammam airport",
-          "saudi flag day"
+          "muhammad rizwan"
         ]
       },
       "Kuwait": {
@@ -1782,32 +1782,32 @@
           "mirassol vs santos",
           "new zealand women vs zimbabwe women",
           "barcelona vs newcastle",
-          "barcelona"
+          "barca"
         ]
       }
     },
     "twitch": {
-      "total_viewers": 240377,
+      "total_viewers": 491821,
       "top_games": [
         {
-          "name": "Dota 2",
-          "viewers": 67997
+          "name": "Just Chatting",
+          "viewers": 92992
         },
         {
           "name": "Street Fighter 6",
-          "viewers": 38714
+          "viewers": 61770
         },
         {
-          "name": "Just Chatting",
-          "viewers": 32545
+          "name": "Dota 2",
+          "viewers": 60458
         },
         {
           "name": "League of Legends",
-          "viewers": 28343
+          "viewers": 54059
         },
         {
-          "name": "ELDEN RING",
-          "viewers": 22426
+          "name": "Overwatch",
+          "viewers": 26008
         }
       ]
     }
