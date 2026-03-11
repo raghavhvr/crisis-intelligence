@@ -9,7 +9,7 @@ const DATA_URL    = "/pulse_data.json";
 const CONFIG_URL  = "/signals_config.json";
 const HISTORY_URL = "/pulse_history.json";
 const GH_OWNER    = "raghavhvr";
-const GH_REPO     = "crisis-pulse";
+const GH_REPO     = "crisis-intelligence";
 const GH_PATH     = "public/signals_config.json";
 
 const MARKET_FLAGS: Record<string,string> = {
