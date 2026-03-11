@@ -77,9 +77,13 @@ function CategoryCard({
   // RSS market signal
   const rssMarket = rss[activeMarket]||{};
   let rssSignal = 0;
-  if(catKey==="crisis_awareness") rssSignal = rssMarket.crisis_pct||0;
-  else if(catKey==="escapism")    rssSignal = rssMarket.sport_entertainment_pct||0;
-  else rssSignal = Math.round(((rssMarket.sport_entertainment_pct||0)+(rssMarket.crisis_pct||0))/2);
+  if     (catKey==="crisis_awareness") rssSignal = rssMarket.crisis_pct||0;
+  else if(catKey==="escapism"||catKey==="entertainment") rssSignal = rssMarket.sport_entertainment_pct||0;
+  else if(catKey==="economic"||catKey==="behavioral_shifts") rssSignal = rssMarket.economic_pct||0;
+  else if(catKey==="social")           rssSignal = rssMarket.social_pct||0;
+  else if(catKey==="wellness")         rssSignal = rssMarket.wellness_pct||0;
+  else if(catKey==="news")             rssSignal = rssMarket.crisis_pct||0;
+  else rssSignal = Math.round(((rssMarket.sport_entertainment_pct||0)+(rssMarket.crisis_pct||0)+(rssMarket.economic_pct||0))/3);
 
   // Primary display score = news volume (market-specific) + rss modifier
   const hasNewsData = newsTotal > 0;
@@ -390,12 +394,23 @@ export default function App(){
   // Build synthetic per-market newsapi from flat + RSS weights
   const buildMarketNewsapi = (market: string, flat: Record<string,number>) => {
     const r = rss[market]||{};
-    const sportW  = (r.sport_entertainment_pct||50) / 50; // 1.0 = average
-    const crisisW = (r.crisis_pct||50) / 50;
+    // use rssWeight inline here (helper not in scope, so inline it)
+    const _sport    = (r.sport_entertainment_pct??50)/50;
+    const _crisis   = (r.crisis_pct??50)/50;
+    const _economic = (r.economic_pct??50)/50;
+    const _social   = (r.social_pct??50)/50;
+    const _wellness = (r.wellness_pct??50)/50;
+    const _ramadan  = (r.ramadan_pct??0)/50;
     const result: Record<string,number> = {};
     Object.entries(flat).forEach(([sig, vol]) => {
       const cat = SIG_CATEGORY[sig]||"econ";
-      const w = cat==="sport" ? sportW : cat==="crisis" ? crisisW : cat==="ramadan" ? sportW*0.8 : 1.0;
+      const w = cat==="sport"   ? _sport
+              : cat==="crisis"  ? _crisis
+              : cat==="econ"    ? _economic
+              : cat==="social"  ? _social
+              : cat==="wellness"? _wellness
+              : cat==="ramadan" ? (_ramadan>0?_ramadan:_sport*0.7)
+              : (_sport+_crisis+_economic)/3;
       result[sig] = Math.round((vol as number) * w);
     });
     return result;
@@ -441,11 +456,7 @@ export default function App(){
       if(base === null){ row[ck] = null; return; }
       // Apply per-market RSS multiplier to create market differentiation
       const r = rss[activeMarket]||{};
-      const sportW  = (r.sport_entertainment_pct||50) / 50;
-      const crisisW = (r.crisis_pct||50) / 50;
-      const catType = ck==="escapism"||ck==="entertainment" ? "sport"
-        : ck==="crisis_awareness"||ck==="news" ? "crisis" : "econ";
-      const w = catType==="sport" ? sportW : catType==="crisis" ? crisisW : (sportW+crisisW)/2;
+      const w = rssWeight(ck, r);
       row[ck] = Math.min(99, Math.round(base * w * 10) / 10);
     });
     return row;
@@ -462,13 +473,9 @@ export default function App(){
       return Array.isArray(v) ? v.reduce((a:number,b:number)=>a+b,0)/v.length : (typeof v==="number" ? v : 0);
     });
     const wikiAvg = wikiVals.length ? wikiVals.reduce((a:number,b:number)=>a+b,0)/wikiVals.length : 0;
-    // Apply RSS mood weight so Sport/Crisis skew per-market
+    // Apply RSS mood weight so each category skews per-market correctly
     const r = rss[activeMarket]||{};
-    const catType = ck==="escapism"||ck==="entertainment" ? "sport"
-      : ck==="crisis_awareness"||ck==="news" ? "crisis" : "econ";
-    const sportW  = (r.sport_entertainment_pct||50)/50;
-    const crisisW = (r.crisis_pct||50)/50;
-    const moodW   = catType==="sport" ? sportW : catType==="crisis" ? crisisW : (sportW+crisisW)/2;
+    const moodW = rssWeight(ck, r);
     // Small newsapi boost if geo-filtered data exists for this market
     const hasNewsData = sigs.some(s=>(newsapiByMarket[activeMarket]?.[s]||0)>0);
     const newsVol = sigs.reduce((sum,s)=>sum+(newsapiByMarket[activeMarket]?.[s]||0)+(guardian[s]||0),0);
@@ -850,8 +857,13 @@ export default function App(){
                   };
                   // Apply same RSS-weight multiplier as main history chart
                   // so per-market lines are genuinely different
+                  // catType used for popup chart per-market weighting
                   const catType = activeCat==="escapism"||activeCat==="entertainment" ? "sport"
-                    : activeCat==="crisis_awareness"||activeCat==="news" ? "crisis" : "econ";
+                    : activeCat==="crisis_awareness"||activeCat==="news" ? "crisis"
+                    : activeCat==="economic"||activeCat==="behavioral_shifts" ? "econ"
+                    : activeCat==="social" ? "social"
+                    : activeCat==="wellness" ? "wellness"
+                    : activeCat==="ramadan" ? "ramadan" : "mixed";
                   const histData = history.slice(-30).map((rec:any)=>({
                     date: (()=>{ const _d=rec.date?new Date(rec.date+'T00:00:00'):null; const _m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return _d?String(_d.getUTCDate()).padStart(2,'0')+'-'+_m[_d.getUTCMonth()]:''; })(),
                     ...Object.fromEntries(allMkts.map(m=>{
@@ -861,9 +873,16 @@ export default function App(){
                       const base = vals.length ? vals.reduce((a:number,b:number)=>a+b,0)/vals.length : null;
                       if(base===null) return [m, null];
                       const rm = rss[m]||{};
-                      const sportW = (rm.sport_entertainment_pct||50)/50;
-                      const crisisW = (rm.crisis_pct||50)/50;
-                      const w = catType==="sport" ? sportW : catType==="crisis" ? crisisW : (sportW+crisisW)/2;
+                      const _s=(rm.sport_entertainment_pct??50)/50, _c=(rm.crisis_pct??50)/50,
+                            _e=(rm.economic_pct??50)/50, _so=(rm.social_pct??50)/50,
+                            _w=(rm.wellness_pct??50)/50, _ra=(rm.ramadan_pct??0)/50;
+                      const w = catType==="sport"   ? _s
+                              : catType==="crisis"  ? _c
+                              : catType==="econ"    ? _e
+                              : catType==="social"  ? _so
+                              : catType==="wellness"? _w
+                              : catType==="ramadan" ? (_ra>0?_ra:_s*0.7)
+                              : (_s+_c+_e)/3;
                       return [m, Math.min(99, Math.round(base * w))];
                     }))
                   }));
@@ -901,7 +920,10 @@ export default function App(){
               const r=rss[market]||{};
               const sport=r.sport_entertainment_pct||0;
               const crisis=r.crisis_pct||0;
-              const other=Math.max(0,100-sport-crisis);
+              const economic=r.economic_pct||0;
+              const social=r.social_pct||0;
+              const wellness=r.wellness_pct||0;
+              const other=Math.max(0,100-sport-crisis-economic-social-wellness);
               return (
                 <div key={market} className="topic-card">
                   <div className="tc-header">
@@ -911,11 +933,17 @@ export default function App(){
                   <div className="mood-bar">
                     <div style={{width:`${sport}%`,background:"var(--cyan)",borderRadius:2}}/>
                     <div style={{width:`${crisis}%`,background:"var(--pink)",borderRadius:2}}/>
+                    <div style={{width:`${economic}%`,background:"var(--orange)",borderRadius:2}}/>
+                    <div style={{width:`${social}%`,background:"var(--purple)",borderRadius:2}}/>
+                    <div style={{width:`${wellness}%`,background:"var(--green)",borderRadius:2}}/>
                     <div style={{width:`${other}%`,background:"var(--border)",borderRadius:2}}/>
                   </div>
-                  <div className="mood-labels">
+                  <div className="mood-labels" style={{flexWrap:"wrap",gap:"4px 10px"}}>
                     <span style={{color:"var(--cyan)"}}>◈ Sport/Ent {sport}%</span>
                     <span style={{color:"var(--pink)"}}>◈ Crisis {crisis}%</span>
+                    <span style={{color:"var(--orange)"}}>◈ Economic {economic}%</span>
+                    <span style={{color:"var(--purple)"}}>◈ Social {social}%</span>
+                    <span style={{color:"var(--green)"}}>◈ Wellness {wellness}%</span>
                   </div>
                   {(r.top_topics||[]).slice(0,5).map((t:string,i:number)=>(
                     <div key={i} className="topic-item">
