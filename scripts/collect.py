@@ -26,28 +26,78 @@ MARKET_NEWS_TERMS = {
     "Kuwait": "Kuwait",
     "Qatar":  "Qatar OR Doha",
 }
-SPORT_KW  = [
-    # English
-    "football","soccer","game","match","vs","ucl","league","cup","sport",
-    "film","movie","music","cricket","ipl","nba","f1","formula","basketball",
-    "tennis","golf","esport","gaming","premier","laliga","champions","serie",
-    "goal","score","player","transfer","tournament","final","wrestling","boxing",
-    "mma","ufc","olympic","medal",
-    # Arabic / romanised MENA trending forms
-    "kora","دوري","كأس","فيلم","مسلسل","برنامج","اغنية","غنية",
-    "لاعب","هداف","الهلال","النصر","الاتحاد","الاهلي","ريال","برشلونة",
-    "مباراة","ملعب","موسم","مسابقة","رمضان",
+# ── RSS topic classifier keyword lists (EN + AR) ─────────────────────────────
+# Each bucket maps to a dashboard category for per-market weighting.
+
+SPORT_KW = [
+    # English — sport
+    "football","soccer","match","vs","league","cup","ucl","ucl","laliga","premier",
+    "champions","serie","goal","score","player","transfer","tournament","semifinal",
+    "final","wrestling","boxing","mma","ufc","olympic","medal","cricket","ipl",
+    "nba","f1","formula","tennis","golf","basketball","esport","gaming","sport",
+    # English — entertainment
+    "film","movie","cinema","music","album","concert","show","series","tv",
+    "singer","actor","actress","celebrity","award","oscar","grammy","netflix",
+    "streaming","game","trailer","release","episode",
+    # Arabic — sport
+    "كرة","مباراة","دوري","كأس","ملعب","لاعب","هداف","تهديف","تمرير",
+    "الهلال","النصر","الاتحاد","الاهلي","ريال","برشلونة","مانشستر","ليفربول",
+    "نهائي","بطولة","منتخب","الفيفا","كأس العالم",
+    # Arabic — entertainment
+    "فيلم","مسلسل","برنامج","اغنية","غنية","مطرب","ممثل","ممثلة","موسيقى",
+    "مسابقة","موسم","عرض","حفلة",
 ]
+
 CRISIS_KW = [
     # English
-    "war","attack","crisis","shortage","price","inflation","ban",
-    "sanction","protest","arrest","flood","earthquake","strike","conflict",
-    "explosion","shooting","bombing","terror","killed","casualties","death",
-    "recession","collapse","accident","disaster","fire","storm","ceasefire",
-    "hostage","refugee","airstrike","missile","assassination",
-    # Arabic / romanised MENA trending forms
-    "حرب","هجوم","ازمة","احتجاج","اعتقال","فيضان","زلزال","انفجار",
-    "ضحايا","وفاة","اغتيال","معركة","قصف","صاروخ","لاجئ",
+    "war","attack","crisis","conflict","explosion","shooting","bombing","terror",
+    "killed","casualties","death","arrest","protest","hostage","refugee",
+    "airstrike","missile","ceasefire","assassination","sanction","ban",
+    "flood","earthquake","disaster","accident","fire","storm","hurricane",
+    # Arabic
+    "حرب","هجوم","أزمة","ازمة","انفجار","إطلاق نار","قصف","إرهاب","ضحايا",
+    "وفاة","اغتيال","معركة","صاروخ","وقف إطلاق","لاجئ","احتجاج","اعتقال",
+    "فيضان","زلزال","كارثة","حريق","عاصفة",
+]
+
+ECONOMIC_KW = [
+    # English
+    "price","inflation","rate","economy","gdp","stock","market","oil","gas",
+    "investment","billion","million","budget","tax","trade","export","import",
+    "bank","currency","dollar","riyal","dirham","salary","job","unemployment",
+    "property","real estate","housing","construction","project","vision 2030",
+    "neom","expo","startup","ipo","merger","acquisition",
+    # Arabic
+    "اقتصاد","تضخم","أسعار","أسعار النفط","ميزانية","استثمار","بنك","عملة",
+    "ريال","درهم","دينار","وظيفة","بطالة","عقار","مشروع","رؤية",
+]
+
+SOCIAL_KW = [
+    # English
+    "viral","trend","social media","tiktok","instagram","twitter","youtube",
+    "influencer","meme","challenge","hashtag","community","family","wedding",
+    "tradition","culture","heritage","festival","celebration","national day",
+    "fashion","style","lifestyle","food","restaurant","travel","tourism",
+    # Arabic
+    "انتشار","ترند","تيك توك","انستغرام","يوتيوب","مؤثر","تحدي","عائلة",
+    "زفاف","تراث","احتفال","اليوم الوطني","موضة","سياحة","مطعم","أكل",
+]
+
+WELLNESS_KW = [
+    # English
+    "health","hospital","disease","virus","vaccine","medicine","treatment",
+    "mental health","fitness","diet","nutrition","weight","exercise","yoga",
+    "cancer","diabetes","surgery","doctor","clinic","pharmacy","epidemic",
+    # Arabic
+    "صحة","مستشفى","مرض","فيروس","لقاح","علاج","طب","دواء","عملية",
+    "لياقة","رجيم","تغذية","سكر","سرطان","طبيب","عيادة","وباء",
+]
+
+RAMADAN_KW = [
+    # English + Arabic
+    "ramadan","eid","iftar","suhoor","tarawih","zakat","charity","fasting",
+    "رمضان","عيد","إفطار","سحور","تراويح","زكاة","صدقة","صيام","قرآن",
+    "هلال","شهر الخير","ليلة القدر",
 ]
 BACKFILL_DAYS = 30
 
@@ -131,16 +181,25 @@ def fetch_rss(geo: str) -> dict:
         root   = ET.fromstring(r.text)
         topics = [i.find("title").text or "" for i in root.findall(".//item") if i.find("title") is not None]
         total  = len(topics) or 1
-        sport_matches  = [t for t in topics if any(k in t.lower() for k in SPORT_KW)]
-        crisis_matches = [t for t in topics if any(k in t.lower() for k in CRISIS_KW)]
-        unmatched      = [t for t in topics if t not in sport_matches and t not in crisis_matches]
-        if unmatched:
-            log.debug(f"  RSS unmatched topics [{geo}]: {unmatched[:5]}")
-        return {
-            "sport_entertainment_pct": round(len(sport_matches)  / total * 100),
-            "crisis_pct":              round(len(crisis_matches) / total * 100),
-            "top_topics":              topics[:10],
+        def pct(kw_list):
+            return round(sum(1 for t in topics if any(k in t.lower() for k in kw_list)) / total * 100)
+
+        buckets = {
+            "sport_entertainment_pct": pct(SPORT_KW),
+            "crisis_pct":              pct(CRISIS_KW),
+            "economic_pct":            pct(ECONOMIC_KW),
+            "social_pct":              pct(SOCIAL_KW),
+            "wellness_pct":            pct(WELLNESS_KW),
+            "ramadan_pct":             pct(RAMADAN_KW),
         }
+        matched = [t for t in topics if any(
+            any(k in t.lower() for k in kw)
+            for kw in [SPORT_KW, CRISIS_KW, ECONOMIC_KW, SOCIAL_KW, WELLNESS_KW, RAMADAN_KW]
+        )]
+        unmatched = [t for t in topics if t not in matched]
+        if unmatched:
+            log.debug(f"  RSS unmatched [{geo}]: {unmatched[:5]}")
+        return {**buckets, "top_topics": topics[:10]}
     except Exception as e:
         log.warning(f"  RSS parse error [{geo}]: {e}")
         return {}
@@ -351,9 +410,14 @@ def append_today(history: list, pulse: dict, signals: dict) -> list:
     rss_weights: dict[str, float] = {}
     for market_name in MARKETS.values():
         r = rss_trends.get(market_name, {})
-        sport  = r.get("sport_entertainment_pct", 50)
-        crisis = r.get("crisis_pct", 50)
-        rss_weights[market_name] = (sport + crisis) / 100  # 0.0–2.0, avg ~1.0
+        sport    = r.get("sport_entertainment_pct", 50)
+        crisis   = r.get("crisis_pct", 50)
+        economic = r.get("economic_pct", 50)
+        social   = r.get("social_pct", 50)
+        wellness = r.get("wellness_pct", 50)
+        ramadan  = r.get("ramadan_pct", 0)
+        # Combine all buckets into an overall market "mood intensity" weight
+        rss_weights[market_name] = (sport + crisis + economic + social + wellness + ramadan) / 300  # avg ~1.0
     # Normalise so average weight = 1.0
     avg_w = sum(rss_weights.values()) / len(rss_weights) if rss_weights else 1.0
     rss_weights = {m: w / avg_w for m, w in rss_weights.items()}
@@ -492,7 +556,7 @@ def collect():
         trends = fetch_rss(geo)
         if trends:
             rss_data[market_name] = trends
-            log.info(f"  ✓ {market_name}: sport={trends['sport_entertainment_pct']}% crisis={trends['crisis_pct']}%")
+            log.info(f"  ✓ {market_name}: sport={trends['sport_entertainment_pct']}% crisis={trends['crisis_pct']}% econ={trends['economic_pct']}% social={trends['social_pct']}% wellness={trends['wellness_pct']}% ramadan={trends['ramadan_pct']}%")
         else:
             log.warning(f"  ✗ {market_name}")
 
