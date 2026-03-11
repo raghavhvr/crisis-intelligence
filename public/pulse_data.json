@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-03-11T12:43:06.950646+00:00",
+  "fetched_at": "2026-03-11T12:47:04.363578+00:00",
   "dates": [
     "Mar 04",
     "Mar 05",
@@ -1754,7 +1754,7 @@
         ]
       },
       "Kuwait": {
-        "sport_entertainment_pct": 20,
+        "sport_entertainment_pct": 30,
         "crisis_pct": 10,
         "top_topics": [
           "\u0637\u064a\u0631\u0627\u0646 \u0627\u0644\u062c\u0632\u064a\u0631\u0629",
@@ -1787,23 +1787,23 @@
       }
     },
     "twitch": {
-      "total_viewers": 6050,
+      "total_viewers": 6064,
       "top_games": [
         {
-          "name": "Just Chatting",
-          "viewers": 879
+          "name": "Rise Online",
+          "viewers": 907
         },
         {
-          "name": "Rise Online",
-          "viewers": 839
+          "name": "Just Chatting",
+          "viewers": 896
         },
         {
           "name": "Knight Online",
-          "viewers": 730
+          "viewers": 742
         },
         {
-          "name": "ARC Raiders",
-          "viewers": 478
+          "name": "Black Desert",
+          "viewers": 474
         },
         {
           "name": "Counter-Strike",
@@ -1824,7 +1824,7 @@
       "flight_searches": 47,
       "fact_checking": 21,
       "social_news": 246,
-      "price_comparison": 98,
+      "price_comparison": 99,
       "discounts": 36,
       "budgeting": 25,
       "inflation": 94,
