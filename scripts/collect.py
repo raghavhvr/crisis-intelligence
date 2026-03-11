@@ -491,6 +491,84 @@ def collect():
     return result, signals, config
 
 
+
+# ── AI Summaries ──────────────────────────────────────────────────────────────
+
+def build_prompt(market: str, data: dict, config: dict) -> str:
+    categories = config.get("categories", {})
+    newsapi_raw = data.get("news_volumes", {}).get("newsapi", {})
+    guardian = data.get("news_volumes", {}).get("guardian", {})
+    rss = data.get("global", {}).get("rss_trends", {}).get(market, {})
+    is_per_market = isinstance(next(iter(newsapi_raw.values()), None), dict)
+    mkt_news = newsapi_raw.get(market, {}) if is_per_market else newsapi_raw
+
+    cat_lines = []
+    for ck, cat in categories.items():
+        sigs = list(cat.get("signals", {}).keys())
+        top = sorted(sigs, key=lambda s: (mkt_news.get(s, 0) + guardian.get(s, 0)), reverse=True)[:3]
+        vols = [f"{s.replace('_',' ')}({mkt_news.get(s,0)+guardian.get(s,0)})" for s in top]
+        cat_lines.append(f"{cat['label']}: {', '.join(vols) or 'low signal'}")
+
+    today = datetime.now(timezone.utc).strftime("%-d %B %Y")
+    ramadan = config.get("ramadan_active") and data.get("ramadan_active")
+    ramadan_note = " Ramadan is active." if ramadan else ""
+
+    sport_pct = rss.get("sport_entertainment_pct", 0)
+    crisis_pct = rss.get("crisis_pct", 0)
+    topics = ", ".join(rss.get("top_topics", [])[:4]) or "n/a"
+
+    return (
+        f"WPP Media MENA strategist. {today}. Market: {market}.{ramadan_note}\n\n"
+        f"Signals: {'; '.join(cat_lines)}\n"
+        f"RSS: sport {sport_pct}%, crisis {crisis_pct}%, trending: {topics}\n\n"
+        f"Write 3 short paragraphs (120 words max):\n"
+        f"1. Consumer Pulse — dominant behaviour now, name top 2 signals\n"
+        f"2. What's Driving It — real-world correlation for {market}, {today}\n"
+        f"3. Media Implication — one sharp action for a brand this week\n"
+        f"No headers. Flowing prose only."
+    )
+
+
+def generate_summary(prompt: str) -> str:
+    """Call LLM7 (no key needed, OpenAI-compatible) to generate market summary."""
+    import urllib.request
+    payload = json.dumps({
+        "model": "codestral-latest",
+        "max_tokens": 300,
+        "temperature": 0.7,
+        "stream": False,
+        "messages": [{"role": "user", "content": prompt}]
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.llm7.io/v1/chat/completions",
+        data=payload,
+        headers={"Content-Type": "application/json", "Authorization": "Bearer unused"},
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read())
+            return result["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        log.warning(f"  LLM7 failed for {prompt[:40]}: {e}")
+        return ""
+
+
+def generate_all_summaries(data: dict, config: dict) -> dict:
+    markets = ["UAE", "KSA", "Kuwait", "Qatar"]
+    summaries = {}
+    log.info("\n🤖 Generating AI summaries...")
+    for market in markets:
+        log.info(f"  {market}...")
+        prompt = build_prompt(market, data, config)
+        text = generate_summary(prompt)
+        if text:
+            summaries[market] = text
+            log.info(f"  ✓ {market} ({len(text)} chars)")
+        else:
+            log.warning(f"  ✗ {market} summary failed")
+    return summaries
+
 # ── Entry ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -510,6 +588,12 @@ if __name__ == "__main__":
             data, signals, config = existing, {}, {}
         else:
             raise
+
+    # Generate AI summaries (server-side, no CORS issues)
+    if signals:
+        summaries = generate_all_summaries(data, config)
+        if summaries:
+            data["summaries"] = summaries
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(data, indent=2))
