@@ -426,7 +426,9 @@ export default function App(){
   // market shows a meaningfully different trend line.
   const historySlice = history.slice(-historyDays);
   const historyChart = historySlice.map((rec:any)=>{
-    const row:any = {date: rec.date?.slice(5)};
+    const _d = rec.date ? new Date(rec.date+'T00:00:00') : null;
+    const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const row:any = {date: _d ? String(_d.getUTCDate()).padStart(2,'0')+'-'+_months[_d.getUTCMonth()] : ''};
     catKeys.forEach(ck=>{
       const sigs = Object.keys(categories[ck]?.signals||{});
       // Base value from history (wiki, global — same across markets)
@@ -954,7 +956,15 @@ export default function App(){
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={historyChart}>
-                    <XAxis dataKey="date" tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(historyChart.length/5)-1)}/>
+                    <XAxis dataKey="date" axisLine={false} tickLine={false}
+                      interval={6}
+                      height={36}
+                      tick={(props:any)=>{
+                        const {x,y,payload} = props;
+                        return <text x={x} y={y+2} fill="#3d5060" fontSize={9} fontFamily="DM Mono,monospace"
+                          textAnchor="end" transform={`rotate(-45,${x},${y+2})`}>{payload.value}</text>;
+                      }}
+                    />
                     <YAxis domain={[0,100]} tick={{fontSize:9,fill:"#3d5060"}} axisLine={false} tickLine={false} width={26}/>
                     <Tooltip content={<CustomTooltip/>}/>
                     {catKeys.map(ck=>(
