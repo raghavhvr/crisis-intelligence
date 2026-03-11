@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-03-11T10:47:41.879565+00:00",
+  "fetched_at": "2026-03-11T12:10:48.090686+00:00",
   "dates": [
     "Mar 04",
     "Mar 05",
@@ -1722,19 +1722,19 @@
     },
     "rss_trends": {
       "UAE": {
-        "sport_entertainment_pct": 0,
+        "sport_entertainment_pct": 10,
         "crisis_pct": 30,
         "top_topics": [
+          "litton das",
           "difc",
           "dubai airport iran war",
           "dubai iran attack",
           "mehidy hasan miraz",
-          "eid",
           "icc",
+          "pakistan national cricket team vs bangladesh national cricket team match scorecard",
+          "khaleej times today",
           "instagram down",
-          "chat gtp",
-          "uae iran war",
-          "drone"
+          "chat gtp"
         ]
       },
       "KSA": {
@@ -1744,36 +1744,35 @@
           "mehidy hasan miraz",
           "\u0627\u062c\u0627\u0632\u0629 \u0639\u064a\u062f \u0627\u0644\u0641\u0637\u0631 2026",
           "booking",
-          "air arabia",
+          "claude ai",
           "enhypen heeseung",
+          "air arabia",
           "icc",
           "muhammad rizwan",
           "dammam airport",
-          "saudi flag day",
-          "gulf air"
+          "saudi flag day"
         ]
       },
       "Kuwait": {
         "sport_entertainment_pct": 20,
         "crisis_pct": 10,
         "top_topics": [
+          "\u0637\u064a\u0631\u0627\u0646 \u0627\u0644\u062c\u0632\u064a\u0631\u0629",
           "abdul samad",
-          "\u0627\u0644\u062c\u0632\u064a\u0631\u0629 \u0644\u0644\u0637\u064a\u0631\u0627\u0646",
+          "icc",
           "maaz sadaqat",
           "pakistan vs bangladesh",
           "jazeera airways",
           "weather",
           "\u0627\u0644\u0637\u0642\u0633",
           "mirassol vs santos",
-          "\u062f\u0648\u0631\u064a \u0627\u0644\u0623\u0628\u0637\u0627\u0644",
-          "\u0627\u0628\u0633\u062a\u064a\u0646"
+          "\u0623\u062a\u0627\u0644\u0627\u0646\u062a\u0627 \u0636\u062f \u0627\u0644\u0628\u0627\u064a\u0631\u0646"
         ]
       },
       "Qatar": {
         "sport_entertainment_pct": 40,
         "crisis_pct": 10,
         "top_topics": [
-          "nahid rana",
           "abdul samad",
           "icc",
           "maaz sadaqat",
@@ -1782,84 +1781,21 @@
           "alexandra eala",
           "mirassol vs santos",
           "new zealand women vs zimbabwe women",
-          "barcelona vs newcastle"
+          "barcelona vs newcastle",
+          "barca"
         ]
       }
-    },
-    "twitch": {
-      "total_viewers": 210523,
-      "top_games": [
-        {
-          "name": "Dota 2",
-          "viewers": 67411
-        },
-        {
-          "name": "Street Fighter 6",
-          "viewers": 48194
-        },
-        {
-          "name": "League of Legends",
-          "viewers": 34442
-        },
-        {
-          "name": "Just Chatting",
-          "viewers": 17590
-        },
-        {
-          "name": "Super Mario 64",
-          "viewers": 13838
-        }
-      ]
     }
   },
-  "news_volumes": {
-    "guardian": {
-      "gaming": 19,
-      "streaming": 24,
-      "humour": 53,
-      "beauty": 45,
-      "breaking_news": 491,
-      "crisis_topics": 282,
-      "war_news": 476,
-      "flight_searches": 47,
-      "fact_checking": 19,
-      "social_news": 241,
-      "price_comparison": 96,
-      "discounts": 35,
-      "budgeting": 25,
-      "inflation": 92,
-      "panic_buying": 64,
-      "panic_selling": 86,
-      "food_delivery": 52,
-      "online_shopping": 50,
-      "home_improvement": 101,
-      "travel": 135,
-      "mental_health": 57,
-      "meditation": 7,
-      "fitness": 24,
-      "sleep": 60,
-      "therapy": 37,
-      "charity": 44,
-      "volunteering": 3,
-      "community": 170,
-      "iftar_delivery": 18,
-      "late_night": 19,
-      "eid_shopping": 4,
-      "suhoor": 15
-    }
-  },
+  "news_volumes": {},
   "sources_live": [
     "wikipedia",
-    "google_rss",
+    "google_rss"
+  ],
+  "sources_failed": [
+    "newsapi",
     "guardian",
     "twitch"
   ],
-  "sources_failed": [
-    "newsapi"
-  ],
-  "ramadan_active": true,
-  "summaries": {
-    "Qatar": "As Ramadaan begins in Qatar on the 11th of March 2026, the following signals are prevalent across media and market:\n\n1. Escapism & Entertainment: Humour, Beauty, Streaming, News & Crisis Awareness, Economic Anxiety, Price Comparison, Inflation, Panic Sellings, Travel, Home Improvement, Food Delivery, Wellness & Mental Health, Social & Community, Charity, Volunteering, Sport 40%, Criisi 10%, Trenning (Nahid Rana, Abdul Samad, ICC, MAZAD Sadaqa), name top 2 signals\n\n2. Ramadaan: Name top 2 signals, Real-world correlation for Qatar, 11 March 2026\n3. Media Implication: One sharp action for a brand this week",
-    "UAE": "WPP Media MENA strategist | 11 March 2026 | Market: UAE | Ramadaan is active | Signals:\nEscapism & Entertainment: Humour, Beauty, Streaming (24%), News & Crisis Awareness (53%), Economic Anxiety (92%), Behavioral Shifts (101%), Wellness & Menatal Health (Sleep (60%, Mental Health (57%, Therapy (37%), Social & Community (Community (170%, Charity (44%, Volunteering (3%)\nRSs: Sport 0%, Criisis 30%, Trenching (Difc, Dubai airport Iran War, Dubai Iran attack, MEHIDY HAZAN MIRZA)\nParses | 120 words max | WPP Media MENA strategist, Ramadaan is active in UAE"
-  }
+  "ramadan_active": true
 }
