@@ -350,48 +350,35 @@ function ExecSummary({ activeMarket, categories, newsapiByMarket, guardian, rss,
     const today = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
     const ramadanNote = isRamadan ? " Note: Ramadan is currently active — consumption patterns are shifted." : "";
 
-    const prompt = `You are a senior media strategist at WPP Media MENA. Today is ${today}.${ramadanNote}
+    const prompt = `WPP Media MENA strategist. ${today}. Market: ${activeMarket}.${ramadanNote}
 
-You are writing a concise executive intelligence briefing for the market: ${activeMarket}.
+Signals: ${catSummaries}
+RSS: sport ${r.sport_entertainment_pct||0}%, crisis ${r.crisis_pct||0}%, trending: ${(r.top_topics||[]).slice(0,4).join(", ")||"n/a"}
+Trends: ${trendStr}
 
-SIGNAL DATA (news volume indexed today):
-${catSummaries}
-
-RSS TRENDS (${activeMarket} today):
-- Sport/Entertainment share: ${r.sport_entertainment_pct||0}%
-- Crisis/News share: ${r.crisis_pct||0}%
-- Top trending topics: ${(r.top_topics||[]).slice(0,5).join(", ")||"unavailable"}
-
-7-DAY TREND vs PRIOR WEEK (signal index 0-100):
-${trendStr}
-
-Write a 3-paragraph executive briefing for a media/marketing decision-maker:
-
-PARAGRAPH 1 — "Consumer Pulse": What is the dominant mood or behaviour of consumers in ${activeMarket} right now? Reference the strongest 2-3 signals specifically.
-
-PARAGRAPH 2 — "What's Driving It": Correlate the signal patterns with plausible real-world events or seasonal factors in ${activeMarket} and the wider MENA region as of ${today}. Reference Ramadan if active. Be specific and credible — name likely drivers even if probabilistic.
-
-PARAGRAPH 3 — "Media Implication": One sharp, actionable recommendation for a media planner or brand in ${activeMarket} this week. What should they do differently given this signal picture?
-
-Rules: Be direct, no fluff. Use signal names naturally. Maximum 180 words total. No headers or bullet points — flowing prose only. End with a single bolded "Signal Alert" sentence if any category shows >15 point week-on-week swing.`;
+Write 3 short paragraphs (120 words total max):
+1. Consumer Pulse — dominant behaviour right now, name top 2 signals
+2. What's Driving It — real-world correlation for ${activeMarket}, ${today}
+3. Media Implication — one sharp action for a brand this week
+No headers. Flowing prose. If any category moved >15pts week-on-week add a bold Signal Alert sentence at end.`;
 
     // Cascading free providers — tries each in order, no API key needed
     const PROVIDERS = [
-      // mlvoca: Ollama-based, no key, no rate limit documented
-      {
-        url: "https://mlvoca.com/api/generate",
-        body: (p:string) => JSON.stringify({ model:"deepseek-r1:1.5b", prompt:p, stream:true }),
-        headers: {"Content-Type":"application/json"},
-        parse: (raw:string) => { try{ return JSON.parse(raw).response||""; }catch{ return ""; } },
-        streamFormat: "ndjson" as const,
-      },
-      // LLM7: OpenAI-compatible, no key, 40 req/min
+      // LLM7: GPT-4o-mini, fast, OpenAI-compatible, no key
       {
         url: "https://api.llm7.io/v1/chat/completions",
         body: (p:string) => JSON.stringify({ model:"gpt-4o-mini-2024-07-18", max_tokens:400, temperature:0.7, stream:true, messages:[{role:"user",content:p}] }),
         headers: {"Content-Type":"application/json","Authorization":"Bearer unused"},
         parse: (raw:string) => { try{ return JSON.parse(raw).choices?.[0]?.delta?.content||""; }catch{ return ""; } },
         streamFormat: "sse" as const,
+      },
+      // mlvoca: Ollama-based fallback, slower
+      {
+        url: "https://mlvoca.com/api/generate",
+        body: (p:string) => JSON.stringify({ model:"deepseek-r1:1.5b", prompt:p, stream:true }),
+        headers: {"Content-Type":"application/json"},
+        parse: (raw:string) => { try{ return JSON.parse(raw).response||""; }catch{ return ""; } },
+        streamFormat: "ndjson" as const,
       },
     ];
 
