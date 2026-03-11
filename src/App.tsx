@@ -380,33 +380,51 @@ export default function App(){
     ? Object.keys(categories[activeCat]?.signals||{})
     : Object.keys(flatSigs);
 
-  // History chart data — use wiki market values (already 0-100 normalised)
+  // History chart: use per-market values from history records
+  // history.markets[market][signal] is already normalised 0-100
   const historySlice = history.slice(-historyDays);
   const historyChart = historySlice.map((rec:any)=>{
     const row:any = {date: rec.date?.slice(5)};
     catKeys.forEach(ck=>{
       const sigs = Object.keys(categories[ck]?.signals||{});
-      // Use active market values
+      // Prefer active market, fall back to UAE
+      const mkt = rec.markets?.[activeMarket] ? activeMarket : "UAE";
       const vals: number[] = sigs
-        .map(s => rec.markets?.[activeMarket]?.[s])
+        .map(s => rec.markets?.[mkt]?.[s])
         .filter((v:any) => v != null && !isNaN(Number(v))) as number[];
-      row[ck] = vals.length
-        ? Math.round(vals.reduce((a,b)=>a+b,0) / vals.length * 10) / 10
+      // Apply per-market news_volumes offset if available in history record
+      const newsOffset = rec.news_volumes?.[activeMarket]
+        ? sigs.reduce((t:number,s:string)=>t+(rec.news_volumes[activeMarket][s]||0),0)
+        : sigs.reduce((t:number,s:string)=>t+(rec.news_volumes?.[s]||0),0);
+      const newsBoost = Math.min(20, Math.round(Math.log(newsOffset+1)/Math.log(200)*20));
+      const base = vals.length
+        ? Math.round(vals.reduce((a:number,b:number)=>a+b,0) / vals.length * 10) / 10
         : null;
+      row[ck] = base != null ? Math.min(99, base + (activeMarket !== "UAE" ? newsBoost - 10 : newsBoost)) : null;
     });
     return row;
   });
 
-  // Radar data — category scores for active market
+  // Radar data — category scores for active market (blends wiki + per-market newsapi)
   const radarData = catKeys.map(ck=>{
     const cat = categories[ck];
     const sigs = Object.keys(cat.signals||{});
-    const vals = sigs.map(s=>{
+    // Wiki baseline (global but consistent shape)
+    const wikiVals = sigs.map(s=>{
       const v = markets[activeMarket]?.[s];
       return Array.isArray(v) ? v[v.length-1] : (v??0);
-    }).filter(v=>v!=null) as number[];
-    const avg = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
-    return {category:cat.label.split("&")[0].trim(), value:avg, fullMark:100};
+    }).filter((v:any)=>v!=null) as number[];
+    const wikiAvg = wikiVals.length ? wikiVals.reduce((a,b)=>a+b,0)/wikiVals.length : 0;
+    // Per-market newsapi volumes normalised
+    const newsVols = sigs.map(s=>(isPerMarket?(newsapiRaw[activeMarket]?.[s]||0):(newsapiRaw[s]||0))+(guardian[s]||0));
+    const newsTotal = newsVols.reduce((a,b)=>a+b,0);
+    const maxAcrossMarkets = Math.max(...["UAE","KSA","Kuwait","Qatar"].map(m=>
+      sigs.reduce((t,s)=>t+(isPerMarket?(newsapiRaw[m]?.[s]||0):(newsapiRaw[s]||0))+(guardian[s]||0),0)
+    ),1);
+    const newsScore = Math.min(99, Math.round((newsTotal/maxAcrossMarkets)*99));
+    // Blend: 50% wiki (shape), 50% newsapi (market differentiation)
+    const blended = newsTotal > 0 ? Math.round(wikiAvg*0.4 + newsScore*0.6) : Math.round(wikiAvg);
+    return {category:cat.label.split("&")[0].trim(), value:blended, fullMark:100};
   });
 
   const fetchedAt  = new Date(data.fetched_at);
@@ -511,7 +529,7 @@ export default function App(){
         .main{padding:28px 32px;display:flex;flex-direction:column;gap:32px;max-width:1500px;margin:0 auto;}
 
         /* ── Section header ── */
-        .sec{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:rgba(255,255,255,0.4);
+        .sec{font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,0.45);
           text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
         .sec::after{content:'';flex:1;height:1px;background:var(--border);}
 
@@ -591,8 +609,8 @@ export default function App(){
         /* ── Radar + long-term ── */
         .analysis-grid{display:grid;grid-template-columns:320px 1fr;gap:16px;}
         .card{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:20px;}
-        .card-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;}
-        .card-sub{font-size:11px;color:var(--muted);margin-bottom:16px;font-style:italic;}
+        .card-title{font-family:var(--sans);font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:4px;}
+        .card-sub{font-size:11px;font-weight:400;color:rgba(255,255,255,0.4);margin-bottom:16px;}
 
         /* ── Period buttons ── */
         .period-btns{display:flex;gap:6px;margin-bottom:16px;}
@@ -838,7 +856,7 @@ export default function App(){
         <div className="analysis-grid">
           <div className="card">
             <div className="card-title">Category Radar · {activeMarket}</div>
-            <div className="card-sub">Signal strength by category · latest values</div>
+            <div className="card-sub">Signal strength by category</div>
             <ResponsiveContainer width="100%" height={260}>
               <RadarChart data={radarData} margin={{top:10,right:20,bottom:10,left:20}}>
                 <PolarGrid stroke="var(--border)" />
@@ -852,8 +870,8 @@ export default function App(){
           </div>
 
           <div className="card">
-            <div className="card-title">Long-term Category Trends</div>
-            <div className="card-sub">Daily avg signal index per category · all markets</div>
+            <div className="card-title">Long-term Category Trends · {activeMarket}</div>
+            <div className="card-sub">Daily avg signal index per category · 30-day view</div>
             {history.length > 0 ? (
               <>
                 <div className="period-btns">
