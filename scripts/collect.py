@@ -26,10 +26,29 @@ MARKET_NEWS_TERMS = {
     "Kuwait": "Kuwait",
     "Qatar":  "Qatar OR Doha",
 }
-SPORT_KW  = ["football","soccer","game","match","vs","ucl","league","cup","sport",
-             "film","movie","music","cricket","ipl","nba","f1","basketball"]
-CRISIS_KW = ["war","attack","crisis","shortage","price","inflation","ban",
-             "sanction","protest","arrest","flood","earthquake","strike","conflict"]
+SPORT_KW  = [
+    # English
+    "football","soccer","game","match","vs","ucl","league","cup","sport",
+    "film","movie","music","cricket","ipl","nba","f1","formula","basketball",
+    "tennis","golf","esport","gaming","premier","laliga","champions","serie",
+    "goal","score","player","transfer","tournament","final","wrestling","boxing",
+    "mma","ufc","olympic","medal",
+    # Arabic / romanised MENA trending forms
+    "kora","دوري","كأس","فيلم","مسلسل","برنامج","اغنية","غنية",
+    "لاعب","هداف","الهلال","النصر","الاتحاد","الاهلي","ريال","برشلونة",
+    "مباراة","ملعب","موسم","مسابقة","رمضان",
+]
+CRISIS_KW = [
+    # English
+    "war","attack","crisis","shortage","price","inflation","ban",
+    "sanction","protest","arrest","flood","earthquake","strike","conflict",
+    "explosion","shooting","bombing","terror","killed","casualties","death",
+    "recession","collapse","accident","disaster","fire","storm","ceasefire",
+    "hostage","refugee","airstrike","missile","assassination",
+    # Arabic / romanised MENA trending forms
+    "حرب","هجوم","ازمة","احتجاج","اعتقال","فيضان","زلزال","انفجار",
+    "ضحايا","وفاة","اغتيال","معركة","قصف","صاروخ","لاجئ",
+]
 BACKFILL_DAYS = 30
 
 BASE_PATH    = Path(__file__).parent.parent
@@ -112,9 +131,14 @@ def fetch_rss(geo: str) -> dict:
         root   = ET.fromstring(r.text)
         topics = [i.find("title").text or "" for i in root.findall(".//item") if i.find("title") is not None]
         total  = len(topics) or 1
+        sport_matches  = [t for t in topics if any(k in t.lower() for k in SPORT_KW)]
+        crisis_matches = [t for t in topics if any(k in t.lower() for k in CRISIS_KW)]
+        unmatched      = [t for t in topics if t not in sport_matches and t not in crisis_matches]
+        if unmatched:
+            log.debug(f"  RSS unmatched topics [{geo}]: {unmatched[:5]}")
         return {
-            "sport_entertainment_pct": round(sum(1 for t in topics if any(k in t.lower() for k in SPORT_KW)) / total * 100),
-            "crisis_pct":              round(sum(1 for t in topics if any(k in t.lower() for k in CRISIS_KW)) / total * 100),
+            "sport_entertainment_pct": round(len(sport_matches)  / total * 100),
+            "crisis_pct":              round(len(crisis_matches) / total * 100),
             "top_topics":              topics[:10],
         }
     except Exception as e:
