@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-03-11T12:10:48.090686+00:00",
+  "fetched_at": "2026-03-11T12:14:10.390838+00:00",
   "dates": [
     "Mar 04",
     "Mar 05",
@@ -1782,20 +1782,80 @@
           "mirassol vs santos",
           "new zealand women vs zimbabwe women",
           "barcelona vs newcastle",
-          "barca"
+          "barcelona"
         ]
       }
+    },
+    "twitch": {
+      "total_viewers": 240377,
+      "top_games": [
+        {
+          "name": "Dota 2",
+          "viewers": 67997
+        },
+        {
+          "name": "Street Fighter 6",
+          "viewers": 38714
+        },
+        {
+          "name": "Just Chatting",
+          "viewers": 32545
+        },
+        {
+          "name": "League of Legends",
+          "viewers": 28343
+        },
+        {
+          "name": "ELDEN RING",
+          "viewers": 22426
+        }
+      ]
     }
   },
-  "news_volumes": {},
+  "news_volumes": {
+    "guardian": {
+      "gaming": 20,
+      "streaming": 24,
+      "humour": 53,
+      "beauty": 45,
+      "breaking_news": 499,
+      "crisis_topics": 286,
+      "war_news": 480,
+      "flight_searches": 47,
+      "fact_checking": 20,
+      "social_news": 244,
+      "price_comparison": 96,
+      "discounts": 36,
+      "budgeting": 25,
+      "inflation": 92,
+      "panic_buying": 66,
+      "panic_selling": 87,
+      "food_delivery": 52,
+      "online_shopping": 52,
+      "home_improvement": 101,
+      "travel": 136,
+      "mental_health": 58,
+      "meditation": 7,
+      "fitness": 24,
+      "sleep": 61,
+      "therapy": 37,
+      "charity": 44,
+      "volunteering": 3,
+      "community": 175,
+      "iftar_delivery": 19,
+      "late_night": 20,
+      "eid_shopping": 4,
+      "suhoor": 16
+    }
+  },
   "sources_live": [
     "wikipedia",
-    "google_rss"
-  ],
-  "sources_failed": [
-    "newsapi",
+    "google_rss",
     "guardian",
     "twitch"
+  ],
+  "sources_failed": [
+    "newsapi"
   ],
   "ramadan_active": true
 }
