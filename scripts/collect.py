@@ -272,20 +272,56 @@ def append_today(history: list, pulse: dict, signals: dict) -> list:
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     history = [r for r in history if r.get("date") != today]  # replace if exists
 
+    newsapi_raw = pulse.get("news_volumes", {}).get("newsapi", {})
+    guardian    = pulse.get("news_volumes", {}).get("guardian", {})
+    is_per_market = isinstance(next(iter(newsapi_raw.values()), None), dict)
+
     snap: dict = {
-        "date": today, "markets": {}, "news_volumes": {},
+        "date": today,
+        "markets": {},
+        "news_volumes": {},        # flat global rollup (backwards compat)
+        "news_volumes_by_market": {},  # NEW: per-market news volumes
         "twitch_viewers": pulse.get("global", {}).get("twitch", {}).get("total_viewers", 0),
     }
+
+    # Per-market scores: blend wiki (last value) + per-market newsapi normalised
+    all_market_totals = {}
     for market_name in MARKETS.values():
-        snap["markets"][market_name] = {
-            sig_key: (vals[-1] if (vals := pulse.get("markets", {}).get(market_name, {}).get(sig_key, [])) else None)
-            for sig_key in signals
-        }
+        mkt_news = newsapi_raw.get(market_name, {}) if is_per_market else {}
+        all_market_totals[market_name] = sum(mkt_news.get(s, 0) for s in signals)
+
+    max_total = max(all_market_totals.values(), default=1) or 1
+
+    for market_name in MARKETS.values():
+        wiki_vals = {}
+        for sig_key in signals:
+            raw = pulse.get("markets", {}).get(market_name, {}).get(sig_key, [])
+            wiki_vals[sig_key] = raw[-1] if raw else None
+
+        mkt_news = newsapi_raw.get(market_name, {}) if is_per_market else {}
+        mkt_total = all_market_totals.get(market_name, 0)
+        # Normalise this market's news volume relative to the highest-volume market
+        mkt_news_factor = mkt_total / max_total  # 0.0 – 1.0
+
+        snap["markets"][market_name] = {}
+        snap["news_volumes_by_market"][market_name] = {}
+        for sig_key in signals:
+            wiki = wiki_vals.get(sig_key)
+            sig_news = mkt_news.get(sig_key, 0) + guardian.get(sig_key, 0)
+            snap["news_volumes_by_market"][market_name][sig_key] = sig_news
+            if wiki is not None and is_per_market:
+                # Blend wiki trend shape with per-market news intensity
+                sig_max = max((newsapi_raw.get(m, {}).get(sig_key, 0) for m in MARKETS.values()), default=1) or 1
+                news_norm = min(99, round((sig_news / sig_max) * 99))
+                snap["markets"][market_name][sig_key] = round(wiki * 0.45 + news_norm * 0.55, 1)
+            else:
+                snap["markets"][market_name][sig_key] = wiki
+
+    # Flat global rollup for backwards compat
     for sig_key in signals:
-        # newsapi is now per-market dict; use global rollup if available
-        na_src = pulse.get("news_volumes", {}).get("newsapi_global") or pulse.get("news_volumes", {}).get("newsapi", {})
-        na = na_src.get(sig_key, 0) if isinstance(na_src, dict) and not isinstance(next(iter(na_src.values()), 0), dict) else 0
-        gd = pulse.get("news_volumes", {}).get("guardian", {}).get(sig_key, 0)
+        na_src = pulse.get("news_volumes", {}).get("newsapi_global") or {}
+        na = na_src.get(sig_key, 0)
+        gd = guardian.get(sig_key, 0)
         snap["news_volumes"][sig_key] = na + gd
 
     history.append(snap)
